@@ -58,3 +58,27 @@ Remove-Item -Path ".\mpv-x86_64-windows-msvc.zip"
 
 # Download https://github.com/yt-dlp/yt-dlp/releases/download/2024.10.07/yt-dlp.exe 
 Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/download/2024.10.07/yt-dlp.exe" -OutFile "$OutputFolder\yt-dlp.exe"
+
+# Download https://www.sqlite.org/2024/sqlite-tools-win-x64-3460100.zip and extract to $OutputFolder\sqlite
+Invoke-WebRequest -Uri "https://www.sqlite.org/2024/sqlite-tools-win-x64-3460100.zip" -OutFile ".\sqlite-tools-win-x64-3460100.zip"
+Expand-Archive -Path ".\sqlite-tools-win-x64-3460100.zip" -Destination "$OutputFolder\sqlite"
+Remove-Item -Path ".\sqlite-tools-win-x64-3460100.zip"
+
+# Write script for exporting the database to csv
+$export = @"
+.\sqlite\sqlite3.exe -header -csv .\queue.sqlite "SELECT * FROM queue INNER JOIN songs ON queue.songUrl = songs.url ORDER BY queue.position;" > .\queue.csv
+"@
+
+Set-Content -Path "$OutputFolder\EXPORT.bat" -Value $export
+
+# Write readme
+$readme = @"
+Before running the program, make sure to configure the program by editing the config.json file.
+You will need to set the `discordToken` and `guildId` fields for the bot to work, if they aren't already set.
+Do not edit the path variables unless you wish to not use the bundled binaries.
+
+To run the program, double click on the RUN.bat file.
+If you want to export the queue at any time, double click on the EXPORT.bat file.
+"@
+
+Set-Content -Path "$OutputFolder\README.txt" -Value $readme
