@@ -91,10 +91,15 @@ async function tryPlayNext(poll: number=1000) {
 
 const queue = new Queue(db);
 const commands: Command[] = [
-    new QueueCommand(queue, { ytDlpPath: config.ytDlpPath }),
+    new QueueCommand(queue, {
+        userLimit: config.userLimit,
+        rolesExempt: config.rolesExempt,
+        usersExempt: config.usersExempt,
+        ytDlpOptions: { ytDlpPath: config.ytDlpPath },
+    }),
 ];
 
-const client = new Client({ intents: ['GuildMembers'] });
+const client = new Client({ intents: ['Guilds', 'GuildMembers'] });
 const token = config.discordToken;
 if (!token)
     throw new Error('Missing DISCORD_TOKEN env var');

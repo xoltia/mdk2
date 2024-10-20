@@ -144,6 +144,10 @@ export class QueueTx {
         this.events.emit('dequeue', next);
         return next;
     };
+
+    rollback(): never {
+        this.tx.rollback();
+    }
 }
 
 declare interface Queue {
