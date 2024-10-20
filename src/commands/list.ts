@@ -1,4 +1,14 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, CommandInteraction, ComponentType, EmbedBuilder, SlashCommandBuilder, type APIEmbed } from 'discord.js';
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonInteraction,
+    ButtonStyle,
+    CommandInteraction,
+    ComponentType,
+    EmbedBuilder,
+    SlashCommandBuilder,
+    type APIEmbed,
+} from 'discord.js';
 import { type Command } from "./base";
 import type Queue from "../queue";
 import type { QueuedSong } from '../queue';
