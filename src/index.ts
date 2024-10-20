@@ -6,6 +6,7 @@ import { Client, Events, REST, Routes } from "discord.js";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import type { Command } from "./commands/base";
 import { loadConfig } from "./config";
+import ListCommand from "./commands/list";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -70,7 +71,7 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
 async function tryPlayNext(poll: number=1000) {
     const dequeued = await queue.transaction(tx => ({
         current: tx.dequeue(),
-        next: tx.findQueued(5),
+        next: tx.findQueued(10),
     }));
     
     if (dequeued.current) {
@@ -97,6 +98,7 @@ const commands: Command[] = [
         usersExempt: config.usersExempt,
         ytDlpOptions: { ytDlpPath: config.ytDlpPath },
     }),
+    new ListCommand(queue),
 ];
 
 const client = new Client({ intents: ['Guilds', 'GuildMembers'] });

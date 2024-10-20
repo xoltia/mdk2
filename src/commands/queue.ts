@@ -24,7 +24,7 @@ export default class QueueCommand implements Command {
     ) {}
 
     data = new SlashCommandBuilder()
-        .setName('queue')
+        .setName('enqueue')
         .setDescription('Add a song to the queue')
         .addStringOption(option =>
             option.setName('url')

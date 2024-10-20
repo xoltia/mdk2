@@ -47,12 +47,12 @@ export class QueueTx {
         }));
     }
 
-    findQueued(n: number): QueuedSong[] {
+    findQueued(n: number, offset=0): QueuedSong[] {
         const rows = this.tx
             .select()
             .from(schema.queue)
             .innerJoin(schema.songs, eq(schema.queue.songUrl, schema.songs.url))
-            .where(gte(schema.queue.position, 0))
+            .where(gte(schema.queue.position, offset))
             .orderBy(schema.queue.position)
             .limit(n)
             .all();
@@ -69,6 +69,16 @@ export class QueueTx {
 
     findByUserId(userId: string): QueuedSong[] {
         return this.findByCondition(eq(schema.queue.userId, userId));
+    }
+
+    countQueued(): number {
+        const result = this.tx
+            .select({ count: count() })
+            .from(schema.queue)
+            .where(isNull(schema.queue.dequeuedAt))
+            .get();
+
+        return result?.count ?? 0;
     }
 
     countQueuedByUserId(userId: string): number {
@@ -171,6 +181,18 @@ class Queue extends EventEmitter {
 
     async dequeue(): Promise<QueuedSong | undefined> {
         return this.transaction(tx => tx.dequeue());
+    }
+
+    async findQueued(n: number, offset=0): Promise<QueuedSong[]> {
+        return this.transaction(tx => tx.findQueued(n, offset));
+    }
+
+    async findById(id: number): Promise<QueuedSong | undefined> {
+        return this.transaction(tx => tx.findById(id));
+    }
+
+    async findByUserId(userId: string): Promise<QueuedSong[]> {
+        return this.transaction(tx => tx.findByUserId(userId));
     }
 
     async transaction<T>(callback: (tx: QueueTx) => T): Promise<T> {
