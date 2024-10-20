@@ -1,0 +1,10 @@
+[X] Configuration as args or JSON file
+[X] Fix preview screen
+[ ] Install script
+    - Copy drizzle to dist
+    - Download ffmpeg to dist
+    - Download mpv to dist
+    - Download yt-dlp to dist
+    - Write yt-dlp config with ffmpeg path
+    - Copy node_modules/@napi-rs/canvas/icudtl.dat to dist
+    - Font?
