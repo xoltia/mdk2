@@ -79,6 +79,7 @@ async function tryPlayNext(poll: number=1000) {
         const proc = Bun.spawn([
             config.mpvPath,
             '--pause',
+            '--fs',
             'preview.jpg',
             dequeued.current.url,
         ]);
