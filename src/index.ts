@@ -86,10 +86,10 @@ async function tryPlayNext(poll=1000) {
     }));
     
     if (!dequeued.current) {
-        console.log('No song to play');
         setTimeout(tryPlayNext, poll);
         return;
     }
+
     await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
 
     const socket = process.platform === 'win32' ? '\\\\.\\pipe\\mpv-socket' : '/tmp/mpv-socket';
@@ -156,16 +156,15 @@ async function tryPlayNext(poll=1000) {
         console.error('Play button timed out');
     }
 
-    try {
-        const sock = Bun.file(socket);
-        if (await sock.exists()) {
-            const writer = sock.writer();
-            writer.write('set pause no\n');
-            writer.end();
-        }
-    } finally {
-        await proc.exited;
+    const sock = Bun.file(socket);
+    if (await sock.exists()) {
+        const writer = sock.writer();
+        writer.write('set pause no\n');
+        writer.end();
     }
+
+    await proc.exited;
+    setTimeout(tryPlayNext, poll);
 }
 
 const queue = new Queue(db);
