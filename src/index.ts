@@ -2,7 +2,18 @@ import { openDb } from "./db";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import Queue, { type QueuedSong } from "./queue";
 import QueueCommand from "./commands/queue";
-import { ActionRowBuilder, ButtonBuilder, ButtonComponent, ButtonInteraction, ButtonStyle, Client, ComponentType, EmbedBuilder, Events, REST, Routes, TextChannel } from "discord.js";
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    Client,
+    ComponentType,
+    EmbedBuilder,
+    Events,
+    REST,
+    Routes,
+    TextChannel
+} from "discord.js";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import type { Command } from "./commands/base";
 import { loadConfig } from "./config";
@@ -74,74 +85,81 @@ async function tryPlayNext(poll=1000) {
         next: tx.findQueued(10),
     }));
     
-    if (dequeued.current) {
-        await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
-
-        const socket = process.platform === 'win32' ? '\\\\.\\pipe\\mpv-socket' : '/tmp/mpv-socket';
-        const proc = Bun.spawn([
-            config.mpvPath,
-            '--pause',
-            '--fs',
-            '--input-ipc-server=' + socket,
-            'preview.jpg',
-            dequeued.current.url,
-        ]);
-
-        const channel =  client.channels.cache.get(config.channelId) as TextChannel;
-        if (!channel) {
-            throw new Error('Channel not found');
-        }
-
-        const embed = new EmbedBuilder()
-            .setTitle(dequeued.current.title)
-            .setDescription('Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.')
-            .toJSON();
-
-        const msg = await channel.send({
-            content: `<@${dequeued.current.userId}>`,
-            embeds: [embed],
-            components: [new ActionRowBuilder<ButtonBuilder>().addComponents([
-                new ButtonBuilder()
-                    .setCustomId('play')
-                    .setLabel('Play')
-                    .setStyle(ButtonStyle.Primary),
-            ])],
-        });
-
-        try {
-            console.log('Waiting for play button');
-            const interaction = await msg.awaitMessageComponent({
-                componentType: ComponentType.Button,
-                filter: (i) => i.customId === 'play' && (
-                    i.user.id === dequeued.current!.userId ||
-                    config.adminUsers.includes(i.user.id) ||
-                    i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
-                ),
-                time: config.playbackTimeout * 1000,
-            });
-            console.log('Play button pressed');
-            await interaction.update({
-                components: [
-                    new ActionRowBuilder<ButtonBuilder>().addComponents([
-                        new ButtonBuilder()
-                            .setCustomId('play')
-                            .setLabel('Playback started')
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(true),
-                    ]),
-                ]
-            });
-        } catch (e) {
-            console.error('Play button timed out');
-        } finally {
-            const sock = Bun.file(socket);
-            const writer = sock.writer();
-            writer.write('cycle pause\n');
-            writer.end();
-            await proc.exited;
-        }
+    if (!dequeued.current) {
+        console.log('No song to play');
+        setTimeout(tryPlayNext, poll);
+        return;
     }
-    setTimeout(tryPlayNext, poll);
+    await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
+
+    const socket = process.platform === 'win32' ? '\\\\.\\pipe\\mpv-socket' : '/tmp/mpv-socket';
+    const proc = Bun.spawn([
+        config.mpvPath,
+        '--pause',
+        '--fs',
+        '--input-ipc-server=' + socket,
+        'preview.jpg',
+        dequeued.current.url,
+    ]);
+
+    const channel =  client.channels.cache.get(config.channelId) as TextChannel;
+    if (!channel) {
+        throw new Error('Channel not found');
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle(dequeued.current.title)
+        .setDescription('Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.')
+        .toJSON();
+
+    const msg = await channel.send({
+        content: `<@${dequeued.current.userId}>`,
+        embeds: [embed],
+        components: [new ActionRowBuilder<ButtonBuilder>().addComponents([
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setLabel('Play')
+                .setStyle(ButtonStyle.Primary),
+        ])],
+    });
+
+    try {
+        console.log('Waiting for play button');
+        const interaction = await msg.awaitMessageComponent({
+            componentType: ComponentType.Button,
+            filter: (i) => i.customId === 'play' && (
+                i.user.id === dequeued.current!.userId ||
+                config.adminUsers.includes(i.user.id) ||
+                i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
+            ),
+            time: config.playbackTimeout * 1000,
+        });
+        console.log('Play button pressed');
+        await interaction.update({
+            components: [
+                new ActionRowBuilder<ButtonBuilder>().addComponents([
+                    new ButtonBuilder()
+                        .setCustomId('play')
+                        .setLabel('Playback started')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(true),
+                ]),
+            ]
+        });
+    } catch (e) {
+        console.error('Play button timed out');
+    }
+
+    try {
+        const sock = Bun.file(socket);
+        if (await sock.exists()) {
+            const writer = sock.writer();
+            writer.write('set pause no\n');
+            writer.end();
+        }
+    } finally {
+        await proc.exited;
+    }
 }
 
 const queue = new Queue(db);
