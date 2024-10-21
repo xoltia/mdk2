@@ -1,6 +1,6 @@
 import { type Db } from "./db";
 import * as schema from "./schema";
-import { and, count, eq, gte, isNull, SQL, sql } from "drizzle-orm";
+import { and, count, eq, gte, isNull, SQL, sql, lte, lt, gt } from "drizzle-orm";
 import { EventEmitter } from "events";
 import { FIFOQueueScheduler, type QueueScheduler } from "./sheduler";
 
@@ -89,6 +89,44 @@ export class QueueTx {
             .get();
 
         return result?.count ?? 0;
+    }
+
+    maxQueuePosition(): number {
+        return this.tx
+            .select({ max: sql<number>`COALESCE(MAX(${schema.queue.position}), -1)` })
+            .from(schema.queue)
+            .get()!.max;
+    }
+
+    moveSong(song: QueuedSong, newPosition: number): void {
+        const oldPosition = song.position;
+        if (oldPosition < 0)
+            throw new Error("Attempted to move dequeued song");
+        if (oldPosition == newPosition)
+            return;
+
+        const maxPosition = this.maxQueuePosition();
+
+        if (newPosition < 0 || newPosition > maxPosition + 1)
+            throw new Error('Invalid queue position');
+
+        if (newPosition < oldPosition) {
+            this.tx.update(schema.queue)
+                .set({ position: sql`${schema.queue.position} + 1` })
+                .where(and(
+                    gte(schema.queue.position, newPosition),
+                    lt(schema.queue.position, oldPosition),
+                ))
+                .run();
+        } else {
+            this.tx.update(schema.queue)
+                .set({ position: sql`${schema.queue.position} - 1` })
+                .where(and(
+                    lte(schema.queue.position, newPosition),
+                    gt(schema.queue.position, oldPosition),
+                ))
+                .run();
+        }
     }
 
     enqueue(song: NewSong): QueuedSong {

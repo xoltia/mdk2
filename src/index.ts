@@ -108,8 +108,14 @@ async function tryPlayNext(poll=1000) {
     }
 
     const embed = new EmbedBuilder()
-        .setTitle(dequeued.current.title)
-        .setDescription('Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.')
+        .setTitle(
+            dequeued.current.title.length > 256 ?
+            dequeued.current.title.slice(0, 253) + '...' :
+            dequeued.current.title
+        )
+        .setDescription(
+            'Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.'
+        )
         .toJSON();
 
     const msg = await channel.send({

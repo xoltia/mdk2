@@ -13,6 +13,15 @@ import { type Command } from "./base";
 import type Queue from "../queue";
 import type { QueuedSong } from '../queue';
 
+function truncateString(str: string, max: number, suffix='...'): string {
+    if (str.length <= max)
+        return str;
+    if (suffix.length >= max)
+        throw new Error('Max should be <= suffix length');
+
+    return str.slice(0, max - suffix.length) + suffix;
+}
+
 export default class ListCommand implements Command {
     constructor(
         private queue: Queue,
@@ -42,8 +51,15 @@ export default class ListCommand implements Command {
         const [songs, hasMore] = await this.getPage(page, pageSize);
         const embed = new EmbedBuilder();
         embed.setTitle('Queue');
-        for (const song of songs)
-            embed.addFields({ name: song.title, value: song.url });
+        for (const song of songs) {
+            embed.addFields({
+                name: truncateString(
+                    `[${song.id}] ${song.position + 1}. ${song.title}`,
+                    256,
+                ),
+                value: song.url,
+            });
+        }
         if (!songs.length)
             embed.setDescription('Nothing to see on this page');
         embed.setFooter({ text: `Page ${page}` });
