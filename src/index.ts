@@ -95,7 +95,7 @@ async function tryPlayNext(poll=1000) {
 
         const embed = new EmbedBuilder()
             .setTitle(dequeued.current.title)
-            .setDescription('Playback will begin when either you or an admin press the play button below.')
+            .setDescription('Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.')
             .toJSON();
 
         const msg = await channel.send({
@@ -118,7 +118,7 @@ async function tryPlayNext(poll=1000) {
                     config.adminUsers.includes(i.user.id) ||
                     i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
                 ),
-                time: 60 * 1000,
+                time: config.playbackTimeout * 1000,
             });
             console.log('Play button pressed');
             await interaction.update({ components: [] });
