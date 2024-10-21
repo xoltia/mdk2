@@ -2,7 +2,7 @@ import { openDb } from "./db";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import Queue, { type QueuedSong } from "./queue";
 import QueueCommand from "./commands/queue";
-import { Client, Events, REST, Routes } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonComponent, ButtonInteraction, ButtonStyle, Client, ComponentType, EmbedBuilder, Events, REST, Routes, TextChannel } from "discord.js";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import type { Command } from "./commands/base";
 import { loadConfig } from "./config";
@@ -68,7 +68,7 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
     await Bun.write(path, data.buffer);
 }
 
-async function tryPlayNext(poll: number=1000) {
+async function tryPlayNext(poll=1000) {
     const dequeued = await queue.transaction(tx => ({
         current: tx.dequeue(),
         next: tx.findQueued(10),
@@ -77,15 +77,60 @@ async function tryPlayNext(poll: number=1000) {
     if (dequeued.current) {
         await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
 
+        const socket = '\\\\.\\pipe\\mpv-socket';
+
         const proc = Bun.spawn([
             config.mpvPath,
             '--pause',
             '--fs',
+            '--input-ipc-server=' + socket,
             'preview.jpg',
             dequeued.current.url,
         ]);
-    
-        await proc.exited;
+
+        const channel =  client.channels.cache.get(config.channelId) as TextChannel;
+        if (!channel) {
+            throw new Error('Channel not found');
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle(dequeued.current.title)
+            .setDescription('Playback will begin when either you or an admin press the play button below.')
+            .toJSON();
+
+        const msg = await channel.send({
+            content: `<@${dequeued.current.userId}>`,
+            embeds: [embed],
+            components: [new ActionRowBuilder<ButtonBuilder>().addComponents([
+                new ButtonBuilder()
+                    .setCustomId('play')
+                    .setLabel('Play')
+                    .setStyle(ButtonStyle.Primary),
+            ])],
+        });
+
+        try {
+            console.log('Waiting for play button');
+            const interaction = await msg.awaitMessageComponent({
+                componentType: ComponentType.Button,
+                filter: (i) => i.customId === 'play' && (
+                    i.user.id === dequeued.current!.userId ||
+                    config.adminUsers.includes(i.user.id) ||
+                    i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
+                ),
+                time: 60 * 1000,
+            });
+            console.log('Play button pressed');
+            await interaction.update({ components: [] });
+        } catch (e) {
+            console.error('Play button timed out');
+        } finally {
+            const sock = Bun.file(socket);
+            const writer = sock.writer();
+            writer.write('cycle pause\n');
+            writer.end();
+            await proc.exited;
+        }
     }
     setTimeout(tryPlayNext, poll);
 }
@@ -94,8 +139,8 @@ const queue = new Queue(db);
 const commands: Command[] = [
     new QueueCommand(queue, {
         userLimit: config.userLimit,
-        rolesExempt: config.rolesExempt,
-        usersExempt: config.usersExempt,
+        rolesExempt: config.adminRoles,
+        usersExempt: config.adminUsers,
         ytDlpOptions: { ytDlpPath: config.ytDlpPath },
     }),
     new ListCommand(queue),

@@ -5,8 +5,9 @@ type AppConfig = {
     ytDlpPath: string;
     guildId: string;
     userLimit: number;
-    rolesExempt: string[];
-    usersExempt: string[];
+    adminRoles: string[];
+    adminUsers: string[];
+    channelId: string;
 };
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -16,8 +17,9 @@ const DEFAULT_CONFIG: AppConfig = {
     ytDlpPath: 'yt-dlp',
     guildId: '',
     userLimit: 1,
-    rolesExempt: [],
-    usersExempt: [],
+    adminRoles: [],
+    adminUsers: [],
+    channelId: '',
 };
 
 // const ENV_VAR_MAP: Record<keyof AppConfig, string> = {
