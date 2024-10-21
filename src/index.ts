@@ -77,8 +77,7 @@ async function tryPlayNext(poll=1000) {
     if (dequeued.current) {
         await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
 
-        const socket = '\\\\.\\pipe\\mpv-socket';
-
+        const socket = process.platform === 'win32' ? '\\\\.\\pipe\\mpv-socket' : '/tmp/mpv-socket';
         const proc = Bun.spawn([
             config.mpvPath,
             '--pause',
@@ -121,7 +120,17 @@ async function tryPlayNext(poll=1000) {
                 time: config.playbackTimeout * 1000,
             });
             console.log('Play button pressed');
-            await interaction.update({ components: [] });
+            await interaction.update({
+                components: [
+                    new ActionRowBuilder<ButtonBuilder>().addComponents([
+                        new ButtonBuilder()
+                            .setCustomId('play')
+                            .setLabel('Playback started')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(true),
+                    ]),
+                ]
+            });
         } catch (e) {
             console.error('Play button timed out');
         } finally {
