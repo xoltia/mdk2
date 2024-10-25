@@ -18,6 +18,7 @@ import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import type { Command } from "./commands/base";
 import { loadConfig } from "./config";
 import ListCommand from "./commands/list";
+import { MPV } from "./mpv";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -79,6 +80,10 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
     await Bun.write(path, data.buffer);
 }
 
+
+const mpv = new MPV(config.mpvPath);
+await mpv.start();
+
 async function tryPlayNext(poll=1000) {
     const dequeued = await queue.transaction(tx => ({
         current: tx.dequeue(),
@@ -92,15 +97,9 @@ async function tryPlayNext(poll=1000) {
 
     await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
 
-    const socket = process.platform === 'win32' ? '\\\\.\\pipe\\mpv-socket' : '/tmp/mpv-socket';
-    const proc = Bun.spawn([
-        config.mpvPath,
-        '--pause',
-        '--fs',
-        '--input-ipc-server=' + socket,
-        'preview.jpg',
-        dequeued.current.url,
-    ]);
+    await mpv.pause();
+    await mpv.load('preview.jpg');
+    await mpv.fullscreen();
 
     const channel =  client.channels.cache.get(config.channelId) as TextChannel;
     if (!channel) {
@@ -156,14 +155,15 @@ async function tryPlayNext(poll=1000) {
         console.error('Play button timed out');
     }
 
-    const sock = Bun.file(socket);
-    if (await sock.exists()) {
-        const writer = sock.writer();
-        writer.write('set pause no\n');
-        writer.end();
+    await mpv.load(dequeued.current.url);
+    await mpv.play();
+    
+    while (true) {
+        if (await mpv.getProperty('pause'))
+            break;
+        await Bun.sleep(500);
     }
 
-    await proc.exited;
     setTimeout(tryPlayNext, poll);
 }
 
