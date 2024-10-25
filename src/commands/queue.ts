@@ -64,7 +64,7 @@ export default class QueueCommand implements Command {
                 return tx.enqueue(song)
             });
 
-            await interaction.editReply(`Your song **${queued.title}** is number **${queued.position + 1}** in the queue.`);
+            await interaction.editReply(`Your song [${queued.title}](${song.url}) is number **${queued.position + 1}** in the queue.`);
         } catch (error) {
             if (error instanceof UserLimitError)
                 await interaction.editReply(error.message);

@@ -115,7 +115,7 @@ export class MPV {
     }
 
     async pause() {
-        return this.sendCommand('set_property', 'pause', true);
+        return this.setProperty('pause', true);
     }
 
     async load(file: string, mode: 'replace' | 'append' | 'append-play' = 'replace') {
@@ -123,7 +123,7 @@ export class MPV {
     }
 
     async play() {
-        return this.sendCommand('set_property', 'pause', false);
+        return this.setProperty('pause', false);
     }
 
     async getProperty(property: string) {

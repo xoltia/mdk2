@@ -25,7 +25,6 @@ const config = await loadConfig();
 const db = openDb(config.dbFile);
 migrate(db, { migrationsFolder: "./drizzle" });
 
-
 async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: string) {
     const canvas = createCanvas(1920, 1080);
     const ctx = canvas.getContext('2d');

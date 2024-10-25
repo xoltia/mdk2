@@ -54,10 +54,10 @@ export default class ListCommand implements Command {
         for (const song of songs) {
             embed.addFields({
                 name: truncateString(
-                    `[${song.id}] ${song.position + 1}. ${song.title}`,
+                    `${song.position + 1}. ${song.title}`,
                     256,
                 ),
-                value: song.url,
+                value: `ID: ${song.id} | Queued By: <@${song.userId}>`,
             });
         }
         if (!songs.length)

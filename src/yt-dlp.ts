@@ -14,6 +14,7 @@ export async function getVideoInfo(url: string, options: YtDlpOptions): Promise<
     const proc = Bun.spawn([
         options.ytDlpPath,
         '--print-json',
+        '--no-playlist',
         '--skip-download',        
         url,
     ]);
