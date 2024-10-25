@@ -106,27 +106,43 @@ export class QueueTx {
             return;
 
         const maxPosition = this.maxQueuePosition();
-
         if (newPosition < 0 || newPosition > maxPosition + 1)
             throw new Error('Invalid queue position');
 
         if (newPosition < oldPosition) {
-            this.tx.update(schema.queue)
-                .set({ position: sql`${schema.queue.position} + 1` })
-                .where(and(
-                    gte(schema.queue.position, newPosition),
-                    lt(schema.queue.position, oldPosition),
-                ))
-                .run();
+            for (let i = oldPosition; i >= newPosition; i--) {
+                this.tx.update(schema.queue)
+                    .set({ position: i + 1 })
+                    .where(eq(schema.queue.position, i))
+                    .run();
+            }
+            // this.tx.update(schema.queue)
+            //     .set({ position: sql`${schema.queue.position} + 1` })
+            //     .where(and(
+            //         gte(schema.queue.position, newPosition),
+            //         lt(schema.queue.position, oldPosition),
+            //     ))
+            //     .run();
         } else {
-            this.tx.update(schema.queue)
-                .set({ position: sql`${schema.queue.position} - 1` })
-                .where(and(
-                    lte(schema.queue.position, newPosition),
-                    gt(schema.queue.position, oldPosition),
-                ))
-                .run();
+            for (let i = oldPosition; i <= newPosition; i++) {
+                this.tx.update(schema.queue)
+                    .set({ position: i - 1 })
+                    .where(eq(schema.queue.position, i))
+                    .run();
+            }
+            // this.tx.update(schema.queue)
+            //     .set({ position: sql`${schema.queue.position} - 1` })
+            //     .where(and(
+            //         lte(schema.queue.position, newPosition),
+            //         gt(schema.queue.position, oldPosition),
+            //     ))
+            //     .run();
         }
+
+        this.tx.update(schema.queue)
+            .set({ position: newPosition })
+            .where(eq(schema.queue.id, song.id))
+            .run();
     }
 
     enqueue(song: NewSong): QueuedSong {

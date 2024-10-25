@@ -19,6 +19,7 @@ import type { Command } from "./commands/base";
 import { loadConfig } from "./config";
 import ListCommand from "./commands/list";
 import { MPV } from "./mpv";
+import MoveCommand from "./commands/move";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -176,6 +177,7 @@ const commands: Command[] = [
         ytDlpOptions: { ytDlpPath: config.ytDlpPath },
     }),
     new ListCommand(queue),
+    new MoveCommand(queue, config.adminUsers, config.adminRoles),
 ];
 
 const client = new Client({ intents: ['Guilds', 'GuildMembers'] });
