@@ -97,9 +97,11 @@ async function tryPlayNext(poll=1000) {
 
     await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
 
-    await mpv.pause();
+
     await mpv.load('preview.jpg');
     await mpv.fullscreen();
+    await mpv.pause();
+    await mpv.load(dequeued.current.url, 'append');
 
     const channel =  client.channels.cache.get(config.channelId) as TextChannel;
     if (!channel) {
@@ -155,11 +157,10 @@ async function tryPlayNext(poll=1000) {
         console.error('Play button timed out');
     }
 
-    await mpv.load(dequeued.current.url);
     await mpv.play();
     
     while (true) {
-        if (await mpv.getProperty('pause'))
+        if (await mpv.getProperty('idle-active'))
             break;
         await Bun.sleep(500);
     }
