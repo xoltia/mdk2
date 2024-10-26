@@ -9,6 +9,7 @@ type AppConfig = {
     adminUsers: string[];
     channelId: string;
     playbackTimeout: number;
+    screenNumber: number;
 };
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -22,6 +23,7 @@ const DEFAULT_CONFIG: AppConfig = {
     adminUsers: [],
     channelId: '',
     playbackTimeout: 60,
+    screenNumber: 0,
 };
 
 // const ENV_VAR_MAP: Record<keyof AppConfig, string> = {

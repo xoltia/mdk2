@@ -81,7 +81,7 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
 }
 
 
-const mpv = new MPV(config.mpvPath);
+const mpv = new MPV(config.mpvPath, config.screenNumber);
 await mpv.start();
 
 async function tryPlayNext(poll=1000) {
@@ -96,7 +96,6 @@ async function tryPlayNext(poll=1000) {
     }
 
     await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
-
 
     await mpv.load('preview.jpg');
     await mpv.fullscreen();
