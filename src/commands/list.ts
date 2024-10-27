@@ -38,7 +38,7 @@ export default class ListCommand implements Command {
         
     async getPage(page: number, pageSize: number): Promise<[QueuedSong[], boolean]> {
         const offset = (page - 1) * pageSize;
-        const [songs, total] = await this.queue.transaction(tx => {
+        const [songs, total] = this.queue.transaction(tx => {
             const songs = tx.findQueued(pageSize, offset);
             const total = tx.countQueued();
             return [songs, total];

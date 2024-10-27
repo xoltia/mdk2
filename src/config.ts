@@ -10,6 +10,7 @@ type AppConfig = {
     channelId: string;
     playbackTimeout: number;
     screenNumber: number;
+    allowSelfSwap: boolean;
 };
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -24,6 +25,7 @@ const DEFAULT_CONFIG: AppConfig = {
     channelId: '',
     playbackTimeout: 60,
     screenNumber: 0,
+    allowSelfSwap: false,
 };
 
 // const ENV_VAR_MAP: Record<keyof AppConfig, string> = {

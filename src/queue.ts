@@ -5,7 +5,8 @@ import { EventEmitter } from "events";
 import { FIFOQueueScheduler, type QueueScheduler } from "./sheduler";
 
 export type QueuedSong = typeof schema.songs.$inferSelect & Omit<typeof schema.queue.$inferSelect, 'songUrl'>;
-export type NewSong = typeof schema.songs.$inferInsert & { userId: string };
+export type NewSong = typeof schema.songs.$inferInsert;
+export type NewQueueSong = NewSong & { userId: string };
 type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 export class QueueTx {
@@ -116,13 +117,6 @@ export class QueueTx {
                     .where(eq(schema.queue.position, i))
                     .run();
             }
-            // this.tx.update(schema.queue)
-            //     .set({ position: sql`${schema.queue.position} + 1` })
-            //     .where(and(
-            //         gte(schema.queue.position, newPosition),
-            //         lt(schema.queue.position, oldPosition),
-            //     ))
-            //     .run();
         } else {
             for (let i = oldPosition; i <= newPosition; i++) {
                 this.tx.update(schema.queue)
@@ -130,13 +124,6 @@ export class QueueTx {
                     .where(eq(schema.queue.position, i))
                     .run();
             }
-            // this.tx.update(schema.queue)
-            //     .set({ position: sql`${schema.queue.position} - 1` })
-            //     .where(and(
-            //         lte(schema.queue.position, newPosition),
-            //         gt(schema.queue.position, oldPosition),
-            //     ))
-            //     .run();
         }
 
         this.tx.update(schema.queue)
@@ -145,7 +132,27 @@ export class QueueTx {
             .run();
     }
 
-    enqueue(song: NewSong): QueuedSong {
+    swapSong(queueId: number, song: NewSong): QueuedSong | undefined {
+        this.tx.insert(schema.songs)
+            .values(song)
+            .onConflictDoUpdate({ set: song, target: schema.songs.url })
+            .run();
+
+        const queueEntry = this.tx.update(schema.queue)
+            .set({ songUrl: song.url })
+            .where(eq(schema.queue.id, queueId))
+            .returning()
+            .get();
+
+        if (!queueEntry) return undefined;
+
+        return {
+            ...song,
+            ...queueEntry,
+        };
+    } 
+
+    enqueue(song: NewQueueSong): QueuedSong {
         this.tx.insert(schema.songs)
             .values(song)
             .onConflictDoUpdate({ set: song, target: schema.songs.url })
@@ -209,6 +216,20 @@ export class QueueTx {
         return next;
     };
 
+    remove(queueId: number): void {
+        const removed = this.tx.delete(schema.queue)
+            .where(eq(schema.queue.id, queueId))
+            .returning({ pos: schema.queue.position })
+            .get();
+
+        if (!removed) return;
+        
+        this.tx.update(schema.queue)
+            .set({ position: sql`${schema.queue.position} - 1` })
+            .where(gt(schema.queue.position, removed.pos))
+            .run();
+    }
+
     rollback(): never {
         this.tx.rollback();
     }
@@ -229,27 +250,31 @@ class Queue extends EventEmitter {
         if (this.scheduler.onDequeue) this.on('dequeue', this.scheduler.onDequeue);
     }
 
-    async enqueue(song: NewSong): Promise<QueuedSong> {
+    enqueue(song: NewQueueSong): QueuedSong {
         return this.transaction(tx => tx.enqueue(song));
     }
 
-    async dequeue(): Promise<QueuedSong | undefined> {
+    swapSong(queueEntryId: number, newSong: NewSong): QueuedSong | undefined {
+        return this.transaction(tx => tx.swapSong(queueEntryId, newSong));
+    }
+
+    dequeue(): QueuedSong | undefined {
         return this.transaction(tx => tx.dequeue());
     }
 
-    async findQueued(n: number, offset=0): Promise<QueuedSong[]> {
+    findQueued(n: number, offset=0): QueuedSong[] {
         return this.transaction(tx => tx.findQueued(n, offset));
     }
 
-    async findById(id: number): Promise<QueuedSong | undefined> {
+    findById(id: number): QueuedSong | undefined {
         return this.transaction(tx => tx.findById(id));
     }
 
-    async findByUserId(userId: string): Promise<QueuedSong[]> {
+    findByUserId(userId: string): QueuedSong[] {
         return this.transaction(tx => tx.findByUserId(userId));
     }
 
-    async transaction<T>(callback: (tx: QueueTx) => T): Promise<T> {
+    transaction<T>(callback: (tx: QueueTx) => T): T {
         return this.db.transaction(tx => {
             return callback(new QueueTx(tx, this, this.scheduler));
         });

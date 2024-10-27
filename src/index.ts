@@ -20,6 +20,8 @@ import { loadConfig } from "./config";
 import ListCommand from "./commands/list";
 import { MPV } from "./mpv";
 import MoveCommand from "./commands/move";
+import SwapCommand from "./commands/swap";
+import RemoveCommand from "./commands/remove";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -85,7 +87,7 @@ const mpv = new MPV(config.mpvPath, config.screenNumber);
 await mpv.start();
 
 async function tryPlayNext(poll=1000) {
-    const dequeued = await queue.transaction(tx => ({
+    const dequeued = queue.transaction(tx => ({
         current: tx.dequeue(),
         next: tx.findQueued(10),
     }));
@@ -177,6 +179,13 @@ const commands: Command[] = [
     }),
     new ListCommand(queue),
     new MoveCommand(queue, config.adminUsers, config.adminRoles),
+    new SwapCommand(queue, {
+        adminRoles: config.adminRoles,
+        adminUsers: config.adminUsers,
+        allowSelfSwap: config.allowSelfSwap,
+        ytDlpOptions: { ytDlpPath: config.ytDlpPath },
+    }),
+    new RemoveCommand(queue, config.adminUsers, config.adminRoles),
 ];
 
 const client = new Client({ intents: ['Guilds', 'GuildMembers'] });

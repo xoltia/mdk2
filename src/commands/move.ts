@@ -41,7 +41,7 @@ export default class MoveCommand implements Command {
         const id = interaction.options.get('id')!.value as number;
         const position =  interaction.options.get('position')!.value as number;
 
-        const [updatedPosition, errorMsg] = await this.queue.transaction(tx => {
+        const [updatedPosition, errorMsg] = this.queue.transaction(tx => {
             const maxQueuePos = tx.maxQueuePosition();
             const song = tx.findById(id);
             const newPosition = Math.max(0, Math.min(position - 1, maxQueuePos));

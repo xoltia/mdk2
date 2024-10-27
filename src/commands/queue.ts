@@ -2,7 +2,7 @@ import { CommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { type Command } from "./base";
 import type Queue from "../queue";
 import { getVideoInfo, type YtDlpOptions } from '../yt-dlp';
-import type { NewSong } from '../queue';
+import type { NewQueueSong, NewSong } from '../queue';
 
 type QueueCommandConfig = {
     userLimit: number;
@@ -38,7 +38,7 @@ export default class QueueCommand implements Command {
 
         const url = interaction.options.get('url')!.value as string;
         const songInfo = await getVideoInfo(url, this.config.ytDlpOptions);
-        const song: NewSong = {
+        const song: NewQueueSong = {
             title: songInfo.title,
             url: songInfo.url,
             duration: songInfo.duration,
@@ -52,7 +52,7 @@ export default class QueueCommand implements Command {
         }
 
         try {
-            const queued = await this.queue.transaction(tx => {
+            const queued = this.queue.transaction(tx => {
                 const isExemptUser = this.config.usersExempt.includes(interaction.user.id);
                 const isExemptRole = roles.some(role => this.config.rolesExempt.includes(role));
                 const isExempt = isExemptUser || isExemptRole;
