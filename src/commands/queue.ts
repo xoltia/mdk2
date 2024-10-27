@@ -64,7 +64,14 @@ export default class QueueCommand implements Command {
                 return tx.enqueue(song)
             });
 
-            await interaction.editReply(`Your song [${queued.title}](${song.url}) is number **${queued.position + 1}** in the queue.`);
+            const timeUntilSong = this.queue.getDurationUntilSong(queued);
+            await interaction.editReply(
+                `Your song [${queued.title}](${song.url}) is number **${queued.position + 1}** in the queue.` + (
+                    timeUntilSong === 0 ?
+                    ` It will play next.` :
+                    ` It will play at <t:${Math.floor(Date.now() / 1000) + timeUntilSong}:t> at the earliest.`
+                )
+            );
         } catch (error) {
             if (error instanceof UserLimitError)
                 await interaction.editReply(error.message);

@@ -216,6 +216,20 @@ export class QueueTx {
         return next;
     };
 
+    getDurationUntilSong(song: QueuedSong): number {
+        const result = this.tx
+            .select({ duration: sql<number>`SUM(${schema.songs.duration})` })
+            .from(schema.queue)
+            .innerJoin(schema.songs, eq(schema.queue.songUrl, schema.songs.url))
+            .where(and(
+                lt(schema.queue.position, song.position),
+                isNull(schema.queue.dequeuedAt),
+            ))
+            .get();
+
+        return result?.duration ?? 0;
+    }
+
     remove(queueId: number): void {
         const removed = this.tx.delete(schema.queue)
             .where(eq(schema.queue.id, queueId))
@@ -270,6 +284,18 @@ class Queue extends EventEmitter {
 
     findByUserId(userId: string): QueuedSong[] {
         return this.transaction(tx => tx.findByUserId(userId));
+    }
+
+    countQueued(): number {
+        return this.transaction(tx => tx.countQueued());
+    }
+
+    countQueuedByUserId(userId: string): number {
+        return this.transaction(tx => tx.countQueuedByUserId(userId));
+    }
+
+    getDurationUntilSong(song: QueuedSong): number {
+        return this.transaction(tx => tx.getDurationUntilSong(song));
     }
 
     transaction<T>(callback: (tx: QueueTx) => T): T {
