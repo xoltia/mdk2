@@ -73,11 +73,6 @@ func validateIsInt(s string) error {
 }
 
 func main() {
-	// cfg, err := loadConfig()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	var cfg *config
 	var err error
 	err = spinner.New().
@@ -90,6 +85,8 @@ func main() {
 		}).
 		Run()
 
+	theme := huh.ThemeCatppuccin()
+
 	err = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -97,7 +94,7 @@ func main() {
 				Description("Enter your Discord bot token.").
 				Value(&cfg.DiscordToken),
 		),
-	).Run()
+	).WithTheme(theme).Run()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -257,7 +254,7 @@ func main() {
 				Title("Save this configuration?").
 				Value(&confirm),
 		),
-	).Run()
+	).WithTheme(theme).Run()
 
 	if err != nil {
 		log.Fatal(err)
