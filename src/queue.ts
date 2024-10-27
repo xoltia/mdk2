@@ -246,8 +246,6 @@ class Queue extends EventEmitter {
         private scheduler: QueueScheduler = new FIFOQueueScheduler(),
     ) {
         super();
-        if (this.scheduler.onQueue) this.on('queue', this.scheduler.onQueue);
-        if (this.scheduler.onDequeue) this.on('dequeue', this.scheduler.onDequeue);
     }
 
     enqueue(song: NewQueueSong): QueuedSong {
