@@ -57,7 +57,7 @@ export default class ListCommand implements Command {
                     `${song.position + 1}. ${song.title}`,
                     256,
                 ),
-                value: `ID: ${song.id} | Queued By: <@${song.userId}>`,
+                value: `ID: \`${song.slug}\` | Queued by <@${song.userId}>`,
             });
         }
         if (!songs.length)

@@ -1,5 +1,5 @@
-import { sql } from "drizzle-orm";
-import { check, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { isNull, sql } from "drizzle-orm";
+import { int, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const songs = sqliteTable('songs', {
     url: text('url').primaryKey().notNull(),
@@ -23,4 +23,9 @@ export const queue = sqliteTable('queue', {
     .notNull()
     .default(sql`(unixepoch())`),
   dequeuedAt: int('dequeuedAt', { mode: 'timestamp' }),
-});
+  slug: text('slug').notNull(),
+}, (table) => ({
+  slugIdx: uniqueIndex('slug_idx')
+    .on(table.slug)
+    .where(isNull(table.dequeuedAt)),
+}));

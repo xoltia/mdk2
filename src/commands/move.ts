@@ -12,11 +12,10 @@ export default class MoveCommand implements Command {
     data = new SlashCommandBuilder()
         .setName('move')
         .setDescription('Move a song by ID to a new position')
-        .addIntegerOption(opt =>
+        .addStringOption(opt =>
             opt.setName('id')
-                .setDescription('The ID of the song to move')
-               .setRequired(true)
-               .setMinValue(1)
+               .setDescription('The ID of the song to move')
+               .setRequired(true),
         )
         .addIntegerOption(opt =>
             opt.setName('position')
@@ -38,12 +37,12 @@ export default class MoveCommand implements Command {
             return;
         }
 
-        const id = interaction.options.get('id')!.value as number;
+        const id = interaction.options.get('id')!.value as string;
         const position =  interaction.options.get('position')!.value as number;
 
         const [updatedPosition, errorMsg] = this.queue.transaction(tx => {
             const maxQueuePos = tx.maxQueuePosition();
-            const song = tx.findById(id);
+            const song = tx.getActiveBySlug(id);
             const newPosition = Math.max(0, Math.min(position - 1, maxQueuePos));
 
             if (!song) return [-1, "Invalid song ID."];

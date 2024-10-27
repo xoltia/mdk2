@@ -12,11 +12,10 @@ export default class RemoveCommand implements Command {
     data = new SlashCommandBuilder()
         .setName('remove')
         .setDescription('Remove a song from the queue')
-        .addIntegerOption(opt =>
+        .addStringOption(opt =>
             opt.setName('id')
-                .setDescription('The ID of the song to remove')
+               .setDescription('The ID of the song to remove')
                .setRequired(true)
-               .setMinValue(1)
         )
 
     async execute(interaction: CommandInteraction) {
@@ -27,9 +26,9 @@ export default class RemoveCommand implements Command {
         const isAdminRole = roles.some(role => this.adminRoles.includes(role));
         const isAdmin = isAdminUser || isAdminRole;
 
-        const id = interaction.options.get('id')!.value as number;
+        const id = interaction.options.get('id')!.value as string;
         const errorMsg = this.queue.transaction(tx => {
-            const song = tx.findById(id);
+            const song = tx.getActiveBySlug(id);
             if (!song)
                 return "Invalid song ID.";
             if (!isAdmin && song.userId !== interaction.user.id)

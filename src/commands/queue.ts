@@ -2,7 +2,8 @@ import { CommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { type Command } from "./base";
 import type Queue from "../queue";
 import { getVideoInfo, type YtDlpOptions } from '../yt-dlp';
-import type { NewQueueSong, NewSong } from '../queue';
+import type { NewQueueSong, QueuedSong } from '../queue';
+import SlugGenerator from '../slugGenerator';
 
 type QueueCommandConfig = {
     userLimit: number;
@@ -21,6 +22,7 @@ export default class QueueCommand implements Command {
     constructor(
         private queue: Queue,
         private config: QueueCommandConfig,
+        private slugGenerator = new SlugGenerator(),
     ) {}
 
     data = new SlashCommandBuilder()
@@ -44,6 +46,7 @@ export default class QueueCommand implements Command {
             duration: songInfo.duration,
             thumbnail: songInfo.thumbnail,
             userId: interaction.user.id,
+            slug: '',
         };
 
         let roles = interaction.member!.roles;
@@ -61,7 +64,8 @@ export default class QueueCommand implements Command {
                     if (userCount >= this.config.userLimit)
                         throw new UserLimitError(this.config.userLimit);
                 }
-                return tx.enqueue(song)
+                song.slug = this.slugGenerator.nextSlug(tx);
+                return tx.enqueue(song);
             });
 
             const timeUntilSong = this.queue.getDurationUntilSong(queued);

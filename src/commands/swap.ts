@@ -20,10 +20,9 @@ export default class SwapCommand implements Command {
     data = new SlashCommandBuilder()
         .setName('swap')
         .setDescription('Change the song at a specific position in the queue')
-        .addIntegerOption(option =>
+        .addStringOption(option =>
             option.setName('id')
                 .setDescription('The ID of the song to swap')
-                .setMinValue(1)
                 .setRequired(true)
         )
         .addStringOption(option =>
@@ -48,7 +47,7 @@ export default class SwapCommand implements Command {
 
         await interaction.deferReply();
 
-        const id = interaction.options.get('id')!.value as number;
+        const id = interaction.options.get('id')!.value as string;
         const url = interaction.options.get('url')!.value as string;
         const songInfo = await getVideoInfo(url, this.config.ytDlpOptions);
         const song: NewSong = {
@@ -59,14 +58,14 @@ export default class SwapCommand implements Command {
         };
 
         const error = this.queue.transaction(tx => {
-            const queuedSong = tx.findById(id);
+            const queuedSong = tx.getActiveBySlug(id);
             if (!queuedSong)
                     return "No song found with the specified ID.";
             if (queuedSong.position < 0)
                     return "This song has already played.";
             if (!isAdmin && queuedSong.userId !== interaction.user.id)
                     return "You do not have permission to swap this song.";
-            tx.swapSong(id, song);
+            tx.swapSong(queuedSong.id, song);
         });
 
         await interaction.editReply(error ?? 'Song swapped.');

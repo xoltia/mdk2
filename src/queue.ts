@@ -1,12 +1,12 @@
 import { type Db } from "./db";
 import * as schema from "./schema";
-import { and, count, eq, gte, isNull, SQL, sql, lte, lt, gt } from "drizzle-orm";
+import { and, count, eq, gte, isNull, SQL, sql, lte, lt, gt, like, or } from "drizzle-orm";
 import { EventEmitter } from "events";
 import { FIFOQueueScheduler, type QueueScheduler } from "./sheduler";
 
 export type QueuedSong = typeof schema.songs.$inferSelect & Omit<typeof schema.queue.$inferSelect, 'songUrl'>;
 export type NewSong = typeof schema.songs.$inferInsert;
-export type NewQueueSong = NewSong & { userId: string };
+export type NewQueueSong = NewSong & { userId: string, slug: string };
 type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 export class QueueTx {
@@ -46,6 +46,16 @@ export class QueueTx {
             ...row.queue,
             ...row.songs,
         }));
+    }
+
+    countByCondition(condition: SQL<unknown>): number {
+        const result = this.tx
+            .select({ count: count() })
+            .from(schema.queue)
+            .where(condition)
+            .get();
+
+        return result?.count ?? 0;
     }
 
     findQueued(n: number, offset=0): QueuedSong[] {
@@ -150,7 +160,11 @@ export class QueueTx {
             ...song,
             ...queueEntry,
         };
-    } 
+    }
+
+    getActiveBySlug(slug: string): QueuedSong | undefined {
+        return this.findOneByCondition(sql`${schema.queue.slug} = ${slug} AND ${schema.queue.dequeuedAt} IS NULL`);
+    }
 
     enqueue(song: NewQueueSong): QueuedSong {
         this.tx.insert(schema.songs)
@@ -164,6 +178,7 @@ export class QueueTx {
                 userId: song.userId,
                 songUrl: song.url,
                 position: sql`(SELECT COALESCE(MAX(position), -1) + 1 FROM ${schema.queue})`,
+                slug: song.slug,
             })
             .returning()
             .get();
