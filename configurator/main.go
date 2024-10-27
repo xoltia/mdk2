@@ -261,8 +261,8 @@ func main() {
 	}
 
 	if !confirm {
-		fmt.Println("Configuration not saved. Closes in 10 seconds...")
-		time.Sleep(10 * time.Second)
+		fmt.Println("Configuration not saved. Closes in 5 seconds...")
+		time.Sleep(5 * time.Second)
 		return
 	}
 
@@ -283,6 +283,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Config saved! Closes in 10 seconds...")
-	time.Sleep(10 * time.Second)
+	fmt.Println("Config saved! Closes in 5 seconds...")
+	time.Sleep(5 * time.Second)
 }
