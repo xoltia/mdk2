@@ -37,7 +37,7 @@ const DEFAULT_CONFIG: AppConfig = {
 // };
 
 export async function loadConfig(): Promise<AppConfig> {
-    const config: AppConfig = { ...DEFAULT_CONFIG };
+    let config: AppConfig = { ...DEFAULT_CONFIG };
 
     // for (const key of Object.keys(ENV_VAR_MAP)) {
     //     const envVar = ENV_VAR_MAP[key as keyof AppConfig];
@@ -45,6 +45,12 @@ export async function loadConfig(): Promise<AppConfig> {
     //         config[key as keyof AppConfig] = process.env[envVar]!;
     //     }
     // }
+
+    const portableFile = Bun.file('config-portable.json');
+    if (await portableFile.exists()) {
+        const portableConfig = await portableFile.json();
+        config = { ...config, ...portableConfig };
+    }
 
     const file = Bun.file('config.json');
     if (!(await file.exists()))

@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "generate": "drizzle-kit generate",
-    "build": "bun build --compile --outfile dist/mdk2 --module src/index.ts"
+    "build-configurator": "cd configurator && go build -o ../dist/configurator.exe",
+    "build-bot": "bun build --compile --outfile dist/mdk2 --module src/index.ts",
+    "build": "bun run build-configurator && bun run build-bot"
   },
   "devDependencies": {
     "@types/bun": "^1.1.11",
