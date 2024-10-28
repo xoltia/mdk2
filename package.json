@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "generate": "drizzle-kit generate",
-    "build-configurator": "cd configurator && go build -o ../dist/CONFIGURATE.exe",
+    "build-configurator": "cd configurator && go build -o ../dist/CONFIGURE.exe",
     "build-bot": "bun build --compile --outfile dist/mdk2 --module src/index.ts",
     "build": "bun run build-configurator && bun run build-bot"
   },
