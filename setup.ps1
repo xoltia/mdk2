@@ -71,17 +71,5 @@ $export = @"
 
 Set-Content -Path "$OutputFolder\EXPORT.bat" -Value $export
 
-# Write readme
-$readme = @"
-Before running the program, make sure to configure the program by editing the config.json file.
-You will need to set the `discordToken` and `guildId` fields for the bot to work, if they aren't already set.
-Do not edit the path variables unless you wish to not use the bundled binaries.
-
-To run the program, double click on the RUN.bat file.
-If you want to export the queue at any time, double click on the EXPORT.bat file.
-"@
-
-Set-Content -Path "$OutputFolder\README.txt" -Value $readme
-
 # Copy DIST_README.txt to $OutputFolder\README.txt
 Copy-Item -Path ".\DIST_README.txt" -Destination "$OutputFolder\DIST_README.txt"
