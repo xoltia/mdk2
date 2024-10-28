@@ -91,7 +91,7 @@ func main() {
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Discord Token").
-				Description("Enter your Discord bot token.").
+				Description("Enter your Discord bot token. If you haven't created a bot yet, see the README for instructions.").
 				Value(&cfg.DiscordToken),
 		),
 	).WithTheme(theme).Run()
