@@ -59,6 +59,12 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
         console.error('Failed to fetch username:', e);
     }
 
+    ctx.font = '24px "Noto Sans JP"';
+    ctx.fillText(
+        `Playback will begin in ${config.playbackTimeout} seconds. ` +
+        'Press the play button on your Discord client to start playback immediately.'
+    , 100, 950, 1920 - 200);
+
     // next up to right
     ctx.font = 'bold 32px "Noto Sans JP"';
     ctx.fillText('Next up:', 1200, 100);
