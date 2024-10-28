@@ -65,25 +65,30 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
         'Press the play button on your Discord client to start playback immediately.'
     , 100, 950, 1920 - 200);
 
-    // next up to right
-    ctx.font = 'bold 32px "Noto Sans JP"';
-    ctx.fillText('Next up:', 1200, 100);
-    const ellipsis = '…';
-    for (let i = 0; i < next.length; i++) {
-        const song = next[i];
-        const text = `${i + 1}. ${song.title}`;
-        const width = ctx.measureText(text).width;
-        if (width > 600) {
-            let newText = text;
-            while (ctx.measureText(newText + ellipsis).width > 600) {
-                newText = newText.slice(0, -1);
+
+    if (next.length > 0) {
+        ctx.font = 'bold 32px "Noto Sans JP"';
+        ctx.fillText('Next up:', 1200, 100);
+        const ellipsis = '…';
+        for (let i = 0; i < next.length; i++) {
+            const song = next[i];
+            const text = `${i + 1}. ${song.title}`;
+            const width = ctx.measureText(text).width;
+            if (width > 600) {
+                let newText = text;
+                while (ctx.measureText(newText + ellipsis).width > 600) {
+                    newText = newText.slice(0, -1);
+                }
+                ctx.fillText(newText + ellipsis, 1200, 200 + i * 50);
+            } else {
+                ctx.fillText(text, 1200, 200 + i * 50);
             }
-            ctx.fillText(newText + ellipsis, 1200, 200 + i * 50);
-        } else {
-            ctx.fillText(text, 1200, 200 + i * 50);
         }
+    } else {
+        ctx.font = 'bold 32px "Noto Sans JP"';
+        ctx.fillText('Use /enqueue to add more songs to the queue.', 1200, 200);
+        ctx.fillText('The queue is currently empty.', 1200, 250);
     }
-    
         
     const data = await canvas.encode('jpeg');
     await Bun.write(path, data.buffer);
@@ -103,7 +108,7 @@ async function writeLoadingImage(current: QueuedSong, path: string) {
     // loading text
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 40px "Noto Sans JP"';
-    ctx.fillText('動画を読み込み中...', 120, 865, 415);
+    ctx.fillText('動画を読み込み中...', 135, 865, 415);
 
     const data = await canvas.encode('jpeg');
     await Bun.write(path, data.buffer);
