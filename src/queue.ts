@@ -120,18 +120,24 @@ export class QueueTx {
         if (newPosition < 0 || newPosition > maxPosition + 1)
             throw new Error('Invalid queue position');
 
-        if (newPosition < oldPosition) {
-            for (let i = oldPosition; i >= newPosition; i--) {
+        // temporary move song to end
+        this.tx.update(schema.queue)
+            .set({ position: maxPosition + 1 })
+            .where(eq(schema.queue.id, song.id))
+            .run();
+            
+        if (newPosition > oldPosition) {
+            for (let i = oldPosition; i < newPosition; i++) {
                 this.tx.update(schema.queue)
-                    .set({ position: i + 1 })
-                    .where(eq(schema.queue.position, i))
+                    .set({ position: i })
+                    .where(eq(schema.queue.position, i + 1))
                     .run();
             }
         } else {
-            for (let i = oldPosition; i <= newPosition; i++) {
+            for (let i = oldPosition; i > newPosition; i--) {
                 this.tx.update(schema.queue)
-                    .set({ position: i - 1 })
-                    .where(eq(schema.queue.position, i))
+                    .set({ position: i })
+                    .where(eq(schema.queue.position, i - 1))
                     .run();
             }
         }
@@ -222,10 +228,21 @@ export class QueueTx {
             .where(eq(schema.queue.position, 0))
             .run();
 
-        // Move all songs down one
-        this.tx.update(schema.queue)
-            .set({ position: sql`${schema.queue.position} - 1` })
-            .run();
+        // Move all songs down one, hacky solution
+        // because trying to shift all at once does
+        // it out of order causing a constraint error
+        // TODO: Fix this
+        const min = this.tx
+            .select({ min: sql<number>`COALESCE(MIN(${schema.queue.position}), 0)` })
+            .from(schema.queue)
+            .get()!.min;
+        const maxPosition = this.maxQueuePosition();
+        for (let i = min; i <= maxPosition; i++) {
+            this.tx.update(schema.queue)
+                .set({ position: i - 1 })
+                .where(eq(schema.queue.position, i))
+                .run();
+        }
 
         this.events.emit('dequeue', next);
         return next;
@@ -252,11 +269,14 @@ export class QueueTx {
             .get();
 
         if (!removed) return;
-        
-        this.tx.update(schema.queue)
-            .set({ position: sql`${schema.queue.position} - 1` })
-            .where(gt(schema.queue.position, removed.pos))
-            .run();
+        const min = removed.pos;
+        const max = this.maxQueuePosition();
+        for (let i = min; i < max; i++) {
+            this.tx.update(schema.queue)
+                .set({ position: i })
+                .where(eq(schema.queue.position, i + 1))
+                .run();
+        }
     }
 
     rollback(): never {
