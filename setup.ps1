@@ -32,7 +32,7 @@ $config = @"
 }
 "@
 
-Set-Content -Path "$OutputFolder\config.json" -Value $config
+Set-Content -Path "$OutputFolder\config-portable.json" -Value $config
 
 # Write RUN.bat
 $run = @"
@@ -82,3 +82,6 @@ If you want to export the queue at any time, double click on the EXPORT.bat file
 "@
 
 Set-Content -Path "$OutputFolder\README.txt" -Value $readme
+
+# Copy DIST_README.txt to $OutputFolder\README.txt
+Copy-Item -Path ".\DIST_README.txt" -Destination "$OutputFolder\DIST_README.txt"
