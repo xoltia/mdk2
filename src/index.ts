@@ -22,6 +22,7 @@ import { MPV } from "./mpv";
 import MoveCommand from "./commands/move";
 import SwapCommand from "./commands/swap";
 import RemoveCommand from "./commands/remove";
+import colors from "./colors";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -82,6 +83,25 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
     await Bun.write(path, data.buffer);
 }
 
+async function writeLoadingImage(current: QueuedSong, path: string) {
+    const canvas = createCanvas(1920, 1080);
+    const ctx = canvas.getContext('2d');
+
+    const currentImage = await loadImage(current.thumbnail);
+    ctx.drawImage(currentImage, 0, 0, 1920, 1080);
+
+    // box for overlaying text
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(100, 800, 415, 100);
+
+    // loading text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 40px "Noto Sans JP"';
+    ctx.fillText('動画を読み込み中...', 120, 865, 415);
+
+    const data = await canvas.encode('jpeg');
+    await Bun.write(path, data.buffer);
+}
 
 const mpv = new MPV(config.mpvPath, config.screenNumber);
 await mpv.start();
@@ -98,10 +118,12 @@ async function tryPlayNext(poll=1000) {
     }
 
     await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
+    await writeLoadingImage(dequeued.current, 'loading.jpg');
 
     await mpv.load('preview.jpg');
     await mpv.fullscreen();
     await mpv.pause();
+    await mpv.load('loading.jpg', 'append');
     await mpv.load(dequeued.current.url, 'append');
 
     const channel =  client.channels.cache.get(config.channelId) as TextChannel;
@@ -118,6 +140,7 @@ async function tryPlayNext(poll=1000) {
         .setDescription(
             'Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.'
         )
+        .setColor(colors.secondary)
         .toJSON();
 
     const msg = await channel.send({

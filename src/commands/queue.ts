@@ -1,9 +1,10 @@
-import { CommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { type Command } from "./base";
 import type Queue from "../queue";
 import { getVideoInfo, type YtDlpOptions } from '../yt-dlp';
-import type { NewQueueSong, QueuedSong } from '../queue';
+import type { NewQueueSong } from '../queue';
 import SlugGenerator from '../slugGenerator';
+import colors from '../colors';
 
 type QueueCommandConfig = {
     userLimit: number;
@@ -69,13 +70,22 @@ export default class QueueCommand implements Command {
             });
 
             const timeUntilSong = this.queue.getDurationUntilSong(queued);
-            await interaction.editReply(
-                `Your song [${queued.title}](${song.url}) is number **${queued.position + 1}** in the queue.` + (
-                    timeUntilSong === 0 ?
-                    ` It will play next.` :
-                    ` It will play at <t:${Math.floor(Date.now() / 1000) + timeUntilSong}:t> at the earliest.`
+            const embed = new EmbedBuilder()
+                .setTitle('Added to Queue')
+                .setDescription(`[${queued.title}](${song.url})`)
+                .addFields(
+                    { name: 'Position', value: `#${queued.position + 1}`, inline: true },
+                    {
+                        name: 'Earliest Play Time',
+                        value: timeUntilSong === 0 ? 'Next' :
+                               `<t:${Math.floor(Date.now() / 1000) + timeUntilSong}:t>`,
+                        inline: true
+                    }
                 )
-            );
+                .setThumbnail(song.thumbnail)
+                .setColor(colors.primary)
+                .setFooter({ text: `Entry ID: ${queued.slug}` });
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             if (error instanceof UserLimitError)
                 await interaction.editReply(error.message);

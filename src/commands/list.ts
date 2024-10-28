@@ -12,6 +12,7 @@ import {
 import { type Command } from "./base";
 import type Queue from "../queue";
 import type { QueuedSong } from '../queue';
+import colors from '../colors';
 
 function truncateString(str: string, max: number, suffix='...'): string {
     if (str.length <= max)
@@ -50,6 +51,7 @@ export default class ListCommand implements Command {
     async getEmbed(page: number, pageSize: number): Promise<[APIEmbed, boolean]> {
         const [songs, hasMore] = await this.getPage(page, pageSize);
         const embed = new EmbedBuilder();
+        embed.setColor(page % 2 === 0 ? colors.secondary : colors.primary);
         embed.setTitle('Queue');
         for (const song of songs) {
             embed.addFields({
