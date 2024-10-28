@@ -39,9 +39,9 @@ function checkForYouTubeId(url: string): string | null {
 
 export async function getVideoInfo(url: string, options: YtDlpOptions): Promise<VideoInfo> {
     const ytId = checkForYouTubeId(url);
-    if (!options.disableYtdlCore) {
+    if (!options.disableYtdlCore && ytId) {
         try {
-            const info = await ytdl.getBasicInfo(url);
+            const info = await ytdl.getBasicInfo(`https://www.youtube.com/watch?v=${ytId}`);
             if (info.videoDetails.thumbnails.length === 0)
                 throw new Error('No thumbnails found');
             return {
