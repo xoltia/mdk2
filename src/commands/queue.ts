@@ -79,7 +79,7 @@ export default class QueueCommand implements Command {
 
             const timeUntilSong = this.queue.getDurationUntilSong(queued);
             const embed = new EmbedBuilder()
-                .setTitle('Added to Queue')
+                .setTitle('Song Queued')
                 .setDescription(`[${queued.title}](${song.url})`)
                 .addFields(
                     { name: 'Position', value: `#${queued.position + 1}`, inline: true },
