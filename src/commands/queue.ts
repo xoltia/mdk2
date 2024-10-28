@@ -1,7 +1,7 @@
 import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { type Command } from "./base";
 import type Queue from "../queue";
-import { getVideoInfo, type YtDlpOptions } from '../yt-dlp';
+import { getVideoInfo, type VideoInfo, type YtDlpOptions } from '../yt-dlp';
 import type { NewQueueSong } from '../queue';
 import SlugGenerator from '../slugGenerator';
 import colors from '../colors';
@@ -40,7 +40,15 @@ export default class QueueCommand implements Command {
         await interaction.deferReply();
 
         const url = interaction.options.get('url')!.value as string;
-        const songInfo = await getVideoInfo(url, this.config.ytDlpOptions);
+        let songInfo: VideoInfo;
+        
+        try {
+            songInfo = await getVideoInfo(url, this.config.ytDlpOptions);
+        } catch (error) {
+            await interaction.editReply('Failed to get video info.');
+            throw error;
+        }
+
         const song: NewQueueSong = {
             title: songInfo.title,
             url: songInfo.url,
