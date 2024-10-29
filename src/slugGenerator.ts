@@ -3,25 +3,40 @@ import { sql } from 'drizzle-orm';
 import type { QueueTx } from './queue';
 import slugs from './slugs';
 
-function shuffle(array: string[]): string[] {
-    const shuffledArray = [...array];
-    for (let i = shuffledArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
-    }
-    return shuffledArray;
-}
-
 export default class SlugGenerator {
     private readonly slugs: string[];
-    private index = 0;
+    private readonly cdf: Float64Array;
     
-    constructor() {
-        this.slugs = shuffle(slugs);
-        this.slugs = this.slugs.filter(slug => slug.indexOf('-') === -1);
+    // higher bias -> more likely to choose the first slug
+    constructor(bias: number = 0.5, slugFilter?: (slug: string) => boolean) {
+        this.slugs = slugFilter ?
+            slugs.filter(slugFilter) :
+            slugs;
+        this.cdf = new Float64Array(this.slugs.length);
+
+        // PDF(i) = 1 / (i + 1) ** k
+        // CDF(i) = sum((1 / (i + 1) ** k) for j in 0..i)
+        const k = bias;
+        let sum = 0;
+        for (let i = 0; i < this.slugs.length; i++) {
+            sum += 1 / Math.pow(i + 1, k);
+            this.cdf[i] = sum;
+        }
+        for (let i = 0; i < this.cdf.length; i++) {
+            this.cdf[i] /= sum;
+        }
     }
 
-    countActiveWithSlugPrefix(tx: QueueTx, slugPrefix: string): number {
+    private chooseSlugIndex(): number {
+        const rand = Math.random();
+        for (let i = 0; i < this.cdf.length; i++) {
+            if (rand < this.cdf[i])
+                return i;
+        }
+        return this.cdf.length - 1;
+    }
+
+    private countActiveWithSlugPrefix(tx: QueueTx, slugPrefix: string): number {
         return tx.countByCondition(sql`
             ${queue.dequeuedAt} IS NULL AND (
                 ${queue.slug} = ${slugPrefix} OR
@@ -31,11 +46,16 @@ export default class SlugGenerator {
     }
     
     nextSlug(tx: QueueTx): string {
-        const slug = this.slugs[this.index];
-        this.index = (this.index + 1) % this.slugs.length
+        const index = this.chooseSlugIndex();
+        const slug = this.slugs[index];
         const number = this.countActiveWithSlugPrefix(tx, slug);
         if (number === 0)
             return slug;
         return `${slug}-${number}`;
+    }
+
+    nextSlugAllowCollision(): string {
+        const index = this.chooseSlugIndex();
+        return this.slugs[index];
     }
 };
