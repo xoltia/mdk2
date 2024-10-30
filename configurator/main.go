@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/charmbracelet/huh"
@@ -260,9 +260,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
 	if !confirm {
-		fmt.Println("Configuration not saved. Closes in 5 seconds...")
-		time.Sleep(5 * time.Second)
+		fmt.Println("Configuration not saved. You may now close this window.")
+		<-c
 		return
 	}
 
@@ -283,6 +286,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Config saved! Closes in 5 seconds...")
-	time.Sleep(5 * time.Second)
+	fmt.Println("Config saved! You may now close this window.")
+	<-c
 }
