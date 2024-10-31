@@ -115,14 +115,14 @@ async function writeLoadingImage(current: QueuedSong, path: string) {
     await Bun.write(path, data.buffer);
 }
 
-async function tryPlayNext(mpv: MPV, poll=1000) {
+async function loopTryPlayNext(mpv: MPV, poll=1000) {
     const dequeued = queue.transaction(tx => ({
         current: tx.dequeue(),
         next: tx.findQueued(10),
     }));
     
     if (!dequeued.current) {
-        setTimeout(tryPlayNext, poll, mpv, poll);
+        setTimeout(loopTryPlayNext, poll, mpv, poll);
         return;
     }
 
@@ -237,7 +237,7 @@ async function tryPlayNext(mpv: MPV, poll=1000) {
         await Bun.sleep(200);
     }
 
-    setTimeout(tryPlayNext, poll, mpv, poll);
+    setTimeout(loopTryPlayNext, poll, mpv, poll);
 }
 
 const queue = new Queue(db);
@@ -284,7 +284,7 @@ client.once(Events.ClientReady, async () => {
     
     const mpv = new MPV(config.mpvPath, config.screenNumber);
     await mpv.start();
-    tryPlayNext(mpv);
+    loopTryPlayNext(mpv);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
