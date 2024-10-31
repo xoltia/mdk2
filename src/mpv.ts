@@ -119,28 +119,32 @@ export class MPV {
         });
     }
 
-    async pause() {
+    pause() {
         return this.setProperty('pause', true);
     }
 
-    async load(file: string, mode: 'replace' | 'append' | 'append-play' = 'replace') {
+    load(file: string, mode: 'replace' | 'append' | 'append-play' = 'replace') {
         return this.sendCommand('loadfile', file, mode);
     }
 
-    async play() {
+    play() {
         return this.setProperty('pause', false);
     }
 
-    async getProperty(property: string) {
+    getProperty(property: string) {
         return this.sendCommand('get_property', property);
     }
 
-    async setProperty(property: string, value: any) {
+    setProperty(property: string, value: any) {
         return this.sendCommand('set_property', property, value);
     }
 
-    async fullscreen() {
+    fullscreen() {
         return this.sendCommand('set_property', 'fullscreen', true);
+    }
+
+    osdMessage(text: string) {
+        return this.sendCommand('show_text', text);
     }
 }
     

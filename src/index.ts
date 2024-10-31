@@ -138,7 +138,7 @@ async function tryPlayNext(poll=1000) {
     await mpv.load('loading.jpg', 'append');
     await mpv.load(dequeued.current.url, 'append');
 
-    const channel =  client.channels.cache.get(config.channelId) as TextChannel;
+    const channel = client.channels.cache.get(config.channelId) as TextChannel | undefined;
     if (!channel) {
         throw new Error('Channel not found');
     }
@@ -166,7 +166,21 @@ async function tryPlayNext(poll=1000) {
         ])],
     });
 
-    console.log('Waiting for play button');
+    // Change font size for the OSD message
+    const previousFontSize = await mpv.getProperty('osd-font-size');
+    await mpv.setProperty('osd-font-size', 24);
+
+    const now = new Date();
+    const countdownInterval = setInterval(() => {
+        const elapsed = (new Date().getTime() - now.getTime()) / 1000;
+        const remaining = config.playbackTimeout - elapsed;
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            return;
+        }
+        mpv.osdMessage(`Starting in ${Math.ceil(remaining)} seconds`);
+    }, 250);
+    
     const interactionPromise = msg.awaitMessageComponent({
         componentType: ComponentType.Button,
         filter: (i) => i.customId === 'play' && (
@@ -198,6 +212,10 @@ async function tryPlayNext(poll=1000) {
     });
 
     const interaction = await playPromise;
+    clearInterval(countdownInterval);
+    // Reset font size
+    await mpv.setProperty('osd-font-size', previousFontSize);
+
     const newComponents = [
         new ActionRowBuilder<ButtonBuilder>().addComponents([
             new ButtonBuilder()
