@@ -1,4 +1,4 @@
-export default [
+[
   "sakuna",
   "gawr",
   "gura",
@@ -5320,5 +5320,5 @@ export default [
   "nachtvt",
   "icarus",
   "ayazuki",
-  "hanoku",
-];
+  "hanoku"
+]

@@ -1,7 +1,7 @@
 import { queue } from './schema';
 import { sql } from 'drizzle-orm';
 import type { QueueTx } from './queue';
-import slugs from './slugs';
+import slugs from './slugs.json' with { type: "json" };
 
 export default class SlugGenerator {
     private readonly slugs: string[];
