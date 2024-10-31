@@ -69,7 +69,9 @@ export default class ListCommand implements Command {
     }
 
     async execute(interaction: CommandInteraction) {
-        await interaction.deferReply();
+        await interaction.deferReply({
+            ephemeral: true,
+        });
 
         const pageSize = 5;
         let page = 1;
