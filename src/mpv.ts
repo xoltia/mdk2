@@ -106,6 +106,7 @@ export class MPV {
         process.on('exit', () => {
             console.log('MPV process exited');
             this.process = null;
+            this.socket = null;
         });
         const socket = await this.getSocket();
         let buffer = '';
