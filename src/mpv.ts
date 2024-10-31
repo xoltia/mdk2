@@ -104,7 +104,7 @@ export class MPV {
     async start() {
         const process = await this.getProcess();
         process.on('exit', () => {
-            console.log('MPV process exited');
+            console.error('MPV process exited');
             this.process = null;
             this.socket = null;
         });
