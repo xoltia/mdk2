@@ -5,6 +5,7 @@ import QueueCommand from "./commands/queue";
 import {
     ActionRowBuilder,
     ButtonBuilder,
+    ButtonInteraction,
     ButtonStyle,
     Client,
     ComponentType,
@@ -165,31 +166,52 @@ async function tryPlayNext(poll=1000) {
         ])],
     });
 
-    try {
-        console.log('Waiting for play button');
-        const interaction = await msg.awaitMessageComponent({
-            componentType: ComponentType.Button,
-            filter: (i) => i.customId === 'play' && (
-                i.user.id === dequeued.current!.userId ||
-                config.adminUsers.includes(i.user.id) ||
-                i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
-            ),
-            time: config.playbackTimeout * 1000,
+    console.log('Waiting for play button');
+    const interactionPromise = msg.awaitMessageComponent({
+        componentType: ComponentType.Button,
+        filter: (i) => i.customId === 'play' && (
+            i.user.id === dequeued.current!.userId ||
+            config.adminUsers.includes(i.user.id) ||
+            i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
+        ),
+        time: config.playbackTimeout * 1000,
+    });
+
+    const playPromise = new Promise<ButtonInteraction | null>(resolve => {
+        // Check if someone pressed the play button
+        const interval = setInterval(async () => {
+            if (!(await mpv.getProperty('pause'))) {
+                clearInterval(interval);
+                resolve(null);
+            }
+        }, 200);
+
+        interactionPromise.then((i) => {
+            // Someone pressed the play button
+            clearInterval(interval);
+            resolve(i);
+        }).catch(() => {
+            // Timeout reached
+            clearInterval(interval);
+            resolve(null);
         });
-        console.log('Play button pressed');
-        await interaction.update({
-            components: [
-                new ActionRowBuilder<ButtonBuilder>().addComponents([
-                    new ButtonBuilder()
-                        .setCustomId('play')
-                        .setLabel('Playback started')
-                        .setStyle(ButtonStyle.Primary)
-                        .setDisabled(true),
-                ]),
-            ]
-        });
-    } catch (e) {
-        console.error('Play button timed out');
+    });
+
+    const interaction = await playPromise;
+    const newComponents = [
+        new ActionRowBuilder<ButtonBuilder>().addComponents([
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setLabel('Playback started')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true),
+        ]),
+    ];
+
+    if (interaction) {
+        await interaction.update({ components: newComponents });
+    } else {
+        await msg.edit({ components: newComponents });
     }
 
     await mpv.play();
@@ -197,7 +219,7 @@ async function tryPlayNext(poll=1000) {
     while (true) {
         if (await mpv.getProperty('idle-active'))
             break;
-        await Bun.sleep(500);
+        await Bun.sleep(200);
     }
 
     setTimeout(tryPlayNext, poll);
