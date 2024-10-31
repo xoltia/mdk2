@@ -178,7 +178,7 @@ async function tryPlayNext(poll=1000) {
             clearInterval(countdownInterval);
             return;
         }
-        mpv.osdMessage(`Starting in ${Math.ceil(remaining)} seconds`);
+        mpv.osdMessage(`Starting in ${Math.round(remaining)} seconds`);
     }, 250);
     
     const interactionPromise = msg.awaitMessageComponent({
