@@ -25,9 +25,63 @@ import SwapCommand from "./commands/swap";
 import RemoveCommand from "./commands/remove";
 import colors from "./colors";
 import StatsCommand from "./commands/stats";
+import { unlink } from "fs/promises";
+import { join as joinPath, basename } from "path";
+import { select, confirm } from "@inquirer/prompts";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
+
+// If the database already exists, ask the user if they want to start a new queue
+const dbFile = Bun.file(config.dbFile);
+const backupPath = joinPath('backup', `${Date.now()}.sqlite3.bak`);
+const backupGlob = new Bun.Glob('backup/*.sqlite3.bak');
+const backupFiles = await Array.fromAsync(backupGlob.scan());
+const hasBackups = backupFiles.length > 0;
+const hasDb = await dbFile.exists();
+
+if (hasDb || hasBackups) {
+    const choices = [{ name: 'Start a new queue', value: 'newQueue' }];
+    if (hasDb)
+        choices.unshift({ name: 'Continue existing queue', value: 'continueQueue' });
+    if (hasBackups)
+        choices.push({ name: 'Restore from backup', value: 'restoreBackup' });
+
+    const result = await select({
+        message: 'What would you like to do?',
+        choices,
+    });
+
+    if (result === 'newQueue') {
+        const confirmed = await confirm({
+            message: 'Make sure there are no other instances of the bot running. Are you sure you want to start a new queue?',
+        });
+        if (!confirmed)
+            process.exit(0);
+        await Bun.write(backupPath, dbFile);
+        await unlink(config.dbFile);
+    } else if (result === 'restoreBackup') {
+        const backupChoices = backupFiles.map(backup => {
+            const filename = basename(backup);
+            const date = new Date(parseInt(filename.split('.')[0]));
+            return {
+                name: date.toLocaleString(),
+                value: backup,
+            };
+        });
+        const backupFile = await select({
+            message: 'Select a backup to restore',
+            choices: backupChoices,
+        });
+        const confirmed = await confirm({
+            message: `This action will overwrite the current database. Do you want to continue?`,
+        });
+        if (!confirmed)
+            process.exit(0);
+        await Bun.write(dbFile, Bun.file(backupFile));
+    }
+}
+
 const db = openDb(config.dbFile);
 migrate(db, { migrationsFolder: "./drizzle" });
 
