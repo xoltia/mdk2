@@ -15,6 +15,13 @@
       "when": 1730072007626,
       "tag": "0001_tired_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1730466762813,
+      "tag": "0002_grey_nitro",
+      "breakpoints": true
     }
   ]
 }

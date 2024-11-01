@@ -24,6 +24,7 @@ import MoveCommand from "./commands/move";
 import SwapCommand from "./commands/swap";
 import RemoveCommand from "./commands/remove";
 import colors from "./colors";
+import StatsCommand from "./commands/stats";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -212,6 +213,7 @@ async function loopTryPlayNext(mpv: MPV, poll=1000) {
     clearInterval(countdownInterval);
     // Reset font size
     await mpv.setProperty('osd-font-size', previousFontSize);
+    queue.setStartedAt(dequeued.current.id);
 
     const newComponents = [
         new ActionRowBuilder<ButtonBuilder>().addComponents([
@@ -257,6 +259,7 @@ const commands: Command[] = [
         ytDlpOptions: { ytDlpPath: config.ytDlpPath },
     }),
     new RemoveCommand(queue, config.adminUsers, config.adminRoles),
+    new StatsCommand(queue),
 ];
 
 const client = new Client({ intents: ['Guilds', 'GuildMembers'] });

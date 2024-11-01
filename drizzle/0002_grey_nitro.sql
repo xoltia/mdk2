@@ -1,0 +1,1 @@
+ALTER TABLE `queue` ADD `startedAt` integer;

@@ -1,6 +1,6 @@
 import { type Db } from "./db";
 import * as schema from "./schema";
-import { and, count, eq, gte, isNull, SQL, sql, lte, lt, gt, like, or } from "drizzle-orm";
+import { and, count, eq, gte, isNull, SQL, sql, lt, isNotNull } from "drizzle-orm";
 import { EventEmitter } from "events";
 import { FIFOQueueScheduler, type QueueScheduler } from "./sheduler";
 
@@ -8,6 +8,15 @@ export type QueuedSong = typeof schema.songs.$inferSelect & Omit<typeof schema.q
 export type NewSong = typeof schema.songs.$inferInsert;
 export type NewQueueSong = NewSong & { userId: string, slug: string };
 type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0];
+
+export type QueueStats = {
+    enqueuedCount: number,
+    dequeuedCount: number,
+    enqueuedDurationTotal: number,
+    dequeuedDurationTotal: number,
+    dequeuedWaitDurationMean: number,
+    dequeueWaitDurationdStdDev: number,
+};
 
 export class QueueTx {
     constructor(
@@ -279,6 +288,52 @@ export class QueueTx {
         }
     }
 
+    setStartedAt(queueId: number): void {
+        this.tx.update(schema.queue)
+            .set({ startedAt: sql`(unixepoch())` })
+            .where(eq(schema.queue.id, queueId))
+            .run();
+    }
+
+    stats(): QueueStats {
+        const enqueuedCount = this.countByCondition(isNull(schema.queue.dequeuedAt));
+        const dequeuedCount = this.countByCondition(isNotNull(schema.queue.dequeuedAt));
+        const enqueuedDurationTotal = this.tx
+            .select({ total: sql<number>`COALESCE(SUM(${schema.songs.duration}), 0)` })
+            .from(schema.queue)
+            .innerJoin(schema.songs, eq(schema.queue.songUrl, schema.songs.url))
+            .where(isNull(schema.queue.dequeuedAt))
+            .get()!.total;
+        const dequeuedDurationTotal = this.tx
+            .select({ total: sql<number>`COALESCE(SUM(${schema.songs.duration}), 0)` })
+            .from(schema.queue)
+            .innerJoin(schema.songs, eq(schema.queue.songUrl, schema.songs.url))
+            .where(isNotNull(schema.queue.dequeuedAt))
+            .get()!.total;
+        const waitTimes = this.tx
+            .select({ waitTime: sql<number>`${schema.queue.startedAt} - ${schema.queue.dequeuedAt}` })
+            .from(schema.queue)
+            .where(and(
+                isNotNull(schema.queue.startedAt),
+                isNotNull(schema.queue.dequeuedAt),
+            ))
+            .all()
+            .map((row) => row.waitTime);
+       
+        const n = waitTimes.length;
+        const mean = waitTimes.reduce((a, b) => a + b, 0) / n;
+        const stdDev = Math.sqrt(waitTimes.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+
+        return {
+            enqueuedCount,
+            dequeuedCount,
+            enqueuedDurationTotal,
+            dequeuedDurationTotal,
+            dequeuedWaitDurationMean: mean,
+            dequeueWaitDurationdStdDev: stdDev,
+        };
+    }
+
     rollback(): never {
         this.tx.rollback();
     }
@@ -331,6 +386,14 @@ class Queue extends EventEmitter {
 
     getDurationUntilSong(song: QueuedSong): number {
         return this.transaction(tx => tx.getDurationUntilSong(song));
+    }
+
+    setStartedAt(queueId: number): void {
+        return this.transaction(tx => tx.setStartedAt(queueId));
+    }
+
+    stats(): QueueStats {
+        return this.transaction(tx => tx.stats());
     }
 
     transaction<T>(callback: (tx: QueueTx) => T): T {
