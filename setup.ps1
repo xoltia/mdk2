@@ -73,3 +73,6 @@ Set-Content -Path "$OutputFolder\EXPORT.bat" -Value $export
 
 # Copy DIST_README.txt to $OutputFolder\README.txt
 Copy-Item -Path ".\DIST_README.txt" -Destination "$OutputFolder\DIST_README.txt"
+
+# Copy LICENSE to $OutputFolder\LICENSE
+Copy-Item -Path ".\LICENSE" -Destination "$OutputFolder\LICENSE"
