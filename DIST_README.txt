@@ -21,4 +21,4 @@ Once this is complete, you can prepare to run the bot following the
 following steps:
 
 1. Run "CONFIGURE.exe" and follow the prompts
-2. Once the configuration is complete, run "RUN.bat" to start the bot
+2. Once the configuration is complete, run "START.bat" to start the bot

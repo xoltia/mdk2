@@ -34,13 +34,13 @@ $config = @"
 
 Set-Content -Path "$OutputFolder\config-portable.json" -Value $config
 
-# Write RUN.bat
+# Write START.bat
 $run = @"
 start /WAIT /B /d "%~dp0" mdk2.exe
 pause
 "@
 
-Set-Content -Path "$OutputFolder\RUN.bat" -Value $run
+Set-Content -Path "$OutputFolder\START.bat" -Value $run
 
 
 # Download and extract https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip

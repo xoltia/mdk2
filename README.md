@@ -29,6 +29,6 @@ then be zipped up and distributed as a portable version of the bot.
 See the README.txt in the `dist` directory for instructions on how to use the bot.
 
 The following files are provided in the `dist` directory:
-- `RUN.bat`: Run the bot
+- `START.bat`: Run the bot
 - `EXPORT.bat`: Output a CSV file of the current queue
 - `CONFIGURE.exe`: Configure the bot
