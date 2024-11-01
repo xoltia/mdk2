@@ -28,6 +28,7 @@ import StatsCommand from "./commands/stats";
 import { unlink } from "fs/promises";
 import { join as joinPath, basename } from "path";
 import { select, confirm } from "@inquirer/prompts";
+import PurgeCommand from "./commands/purge";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
 const config = await loadConfig();
@@ -182,7 +183,7 @@ async function loopTryPlayNext(mpv: MPV, poll=1000) {
     }
 
     await writePreviewImage(dequeued.current, dequeued.next, './temp/preview.jpg');
-    await writeLoadingImage(dequeued.current, './temploading.jpg');
+    await writeLoadingImage(dequeued.current, './temp/loading.jpg');
 
     await mpv.load('./temp/preview.jpg');
     await mpv.fullscreen();
@@ -314,6 +315,7 @@ const commands: Command[] = [
     }),
     new RemoveCommand(queue, config.adminUsers, config.adminRoles),
     new StatsCommand(queue),
+    new PurgeCommand(queue, config.adminUsers, config.adminRoles),
 ];
 
 const client = new Client({ intents: ['Guilds', 'GuildMembers'] });
