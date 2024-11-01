@@ -12,6 +12,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // type AppConfig = {
@@ -72,6 +73,60 @@ func validateIsInt(s string) error {
 	return nil
 }
 
+func customTheme() *huh.Theme {
+	t := huh.ThemeBase()
+
+	var (
+		primaryColor   = lipgloss.Color("#f9cdde")
+		secondaryColor = lipgloss.Color("#b5e0e7")
+		cursorColor    = lipgloss.Color("#f9cdde")
+		errColor       = lipgloss.Color("f55151")
+		selectedColor  = lipgloss.Color("#f9cdde")
+	)
+
+	t.Focused.Title = t.Focused.Title.Foreground(primaryColor)
+	t.Focused.NoteTitle = t.Focused.NoteTitle.Foreground(primaryColor)
+	t.Focused.Directory = t.Focused.Directory.Foreground(primaryColor)
+	t.Focused.ErrorIndicator = t.Focused.ErrorIndicator.Foreground(errColor)
+	t.Focused.ErrorMessage = t.Focused.ErrorMessage.Foreground(errColor)
+	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(secondaryColor)
+	t.Focused.NextIndicator = t.Focused.NextIndicator.Foreground(secondaryColor)
+	t.Focused.PrevIndicator = t.Focused.PrevIndicator.Foreground(secondaryColor)
+	t.Focused.MultiSelectSelector = t.Focused.MultiSelectSelector.Foreground(secondaryColor)
+	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(selectedColor)
+	t.Focused.SelectedPrefix = t.Focused.SelectedPrefix.Foreground(selectedColor)
+	t.Focused.TextInput.Cursor = t.Focused.TextInput.Cursor.Foreground(cursorColor)
+	t.Focused.TextInput.Prompt = t.Focused.TextInput.Prompt.Foreground(secondaryColor)
+
+	var (
+		base     = lipgloss.Color("#282a36")
+		text     = lipgloss.Color("#9fa6d4")
+		subtext0 = lipgloss.Color("#6272a4")
+		subtext1 = lipgloss.Color("#44475a")
+		overlay0 = lipgloss.Color("#f8f8f2")
+		overlay1 = lipgloss.Color("#f8f8f2")
+	)
+
+	t.Focused.Base = t.Focused.Base.BorderForeground(subtext1)
+	t.Focused.Description = t.Focused.Description.Foreground(subtext0)
+	t.Focused.Option = t.Focused.Option.Foreground(text)
+	t.Focused.UnselectedPrefix = t.Focused.UnselectedPrefix.Foreground(text)
+	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(text)
+	t.Focused.FocusedButton = t.Focused.FocusedButton.Foreground(base).Background(secondaryColor)
+	t.Focused.BlurredButton = t.Focused.BlurredButton.Foreground(text).Background(base)
+	t.Focused.TextInput.Placeholder = t.Focused.TextInput.Placeholder.Foreground(overlay0)
+	t.Blurred = t.Focused
+	t.Blurred.Base = t.Blurred.Base.BorderStyle(lipgloss.HiddenBorder())
+	t.Help.Ellipsis = t.Help.Ellipsis.Foreground(subtext0)
+	t.Help.ShortKey = t.Help.ShortKey.Foreground(subtext0)
+	t.Help.ShortDesc = t.Help.ShortDesc.Foreground(overlay1)
+	t.Help.ShortSeparator = t.Help.ShortSeparator.Foreground(subtext0)
+	t.Help.FullKey = t.Help.FullKey.Foreground(subtext0)
+	t.Help.FullDesc = t.Help.FullDesc.Foreground(overlay1)
+	t.Help.FullSeparator = t.Help.FullSeparator.Foreground(subtext0)
+	return t
+}
+
 func main() {
 	var cfg *config
 	var err error
@@ -85,7 +140,7 @@ func main() {
 		}).
 		Run()
 
-	theme := huh.ThemeCatppuccin()
+	theme := customTheme()
 
 	err = huh.NewForm(
 		huh.NewGroup(
