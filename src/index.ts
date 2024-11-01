@@ -181,13 +181,13 @@ async function loopTryPlayNext(mpv: MPV, poll=1000) {
         return;
     }
 
-    await writePreviewImage(dequeued.current, dequeued.next, 'preview.jpg');
-    await writeLoadingImage(dequeued.current, 'loading.jpg');
+    await writePreviewImage(dequeued.current, dequeued.next, './temp/preview.jpg');
+    await writeLoadingImage(dequeued.current, './temploading.jpg');
 
-    await mpv.load('preview.jpg');
+    await mpv.load('./temp/preview.jpg');
     await mpv.fullscreen();
     await mpv.pause();
-    await mpv.load('loading.jpg', 'append');
+    await mpv.load('./temp/loading.jpg', 'append');
     await mpv.load(dequeued.current.url, 'append');
 
     const channel = client.channels.cache.get(config.channelId) as TextChannel | undefined;
