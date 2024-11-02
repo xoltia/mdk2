@@ -36,6 +36,7 @@ Set-Content -Path "$OutputFolder\config-portable.json" -Value $config
 
 # Write START.bat
 $run = @"
+@echo off
 start /WAIT /B /d "%~dp0" mdk2.exe
 pause
 "@
