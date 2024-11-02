@@ -159,14 +159,24 @@ async function writeLoadingImage(current: QueuedSong, path: string) {
     const currentImage = await loadImage(current.thumbnail);
     ctx.drawImage(currentImage, 0, 0, 1920, 1080);
 
-    // box for overlaying text
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(100, 800, 415, 100);
+    ctx.font = 'bold 40px "Noto Sans JP", "Noto Color Emoji"';
 
-    // loading text
+    const possibleEmojis = ['🤖', '🫠', '🎶', '🎵', '🔃'];
+    const possibleMessages = [
+        '動画を読み込み中',
+        'Loading...',
+    ];
+
+    const randomEmoji = possibleEmojis[Math.floor(Math.random() * possibleEmojis.length)];
+    const randomMessage = possibleMessages[Math.floor(Math.random() * possibleMessages.length)];
+    const text = `${randomEmoji} ${randomMessage} ${randomEmoji}`;
+    const textWidth = ctx.measureText(text).width;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.roundRect(100, 800, textWidth + 70, 90, 10);
+    ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 40px "Noto Sans JP"';
-    ctx.fillText('動画を読み込み中...', 135, 865, 415);
+    ctx.fillText(text, 135, 860);
 
     const data = await canvas.encode('jpeg');
     await Bun.write(path, data.buffer);
