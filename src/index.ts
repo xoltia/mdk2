@@ -124,7 +124,7 @@ client.once(Events.ClientReady, async () => {
     loopTryPlayNext(mpv, queue, client, config, 1000);
 
     mpv.on('exit', () => {
-        console.error('MPV process exited');
+        console.error('MPV process exited. Exiting.');
         process.exit(1);
     });
 });
