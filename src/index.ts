@@ -359,6 +359,11 @@ client.once(Events.ClientReady, async () => {
     console.log('MPV started, do not close the MPV window!');
     console.log('To stop the bot, close this terminal window.');
     loopTryPlayNext(mpv);
+
+    mpv.on('exit', () => {
+        console.error('MPV process exited');
+        process.exit(1);
+    });
 });
 
 client.on(Events.InteractionCreate, async interaction => {

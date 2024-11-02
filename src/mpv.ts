@@ -9,16 +9,16 @@ type MPVEvent = {
     error: string;
 };
 
-export class MPV {
+export class MPV extends EventEmitter {
     private socketPath: string;
     private mpvPath: string;
     private process: ChildProcess | null;
     private socket: Socket | null;
     private id: number;
-    private eventEmitter: EventEmitter;
     private screenNumber: number;
 
     constructor(mpvPath: string, screenNumber: number) {
+        super();
         this.socketPath = process.platform === 'win32' ?
             '\\\\.\\pipe\\mpvsocket' :
             '/tmp/mpvsocket';
@@ -26,8 +26,7 @@ export class MPV {
         this.process = null;
         this.socket = null;
         this.id = 0;
-        this.eventEmitter = new EventEmitter();
-        this.screenNumber = screenNumber
+        this.screenNumber = screenNumber;
     }
 
     private async createSocket(): Promise<Socket> {
@@ -89,24 +88,24 @@ export class MPV {
                     } else {
                         resolve(event.data);
                     }
-                    this.eventEmitter.off('event', listener);
+                    this.off('event', listener);
                 }
             };
-            this.eventEmitter.on('event', listener);
+            this.on('event', listener);
         });
     }
 
     private async handleEvent(data: string) {
         const event = JSON.parse(data) as MPVEvent;
-        this.eventEmitter.emit('event', event);
+        this.emit('event', event);
     }
 
     async start() {
         const process = await this.getProcess();
         process.on('exit', () => {
-            console.error('MPV process exited');
             this.process = null;
             this.socket = null;
+            this.emit('exit');
         });
         const socket = await this.getSocket();
         let buffer = '';
