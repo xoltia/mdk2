@@ -1,4 +1,4 @@
-type AppConfig = {
+export type AppConfig = {
     dbFile: string;
     discordToken: string;
     mpvPath: string;

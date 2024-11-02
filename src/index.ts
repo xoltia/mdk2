@@ -1,21 +1,8 @@
 import { openDb } from "./db";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import Queue, { type QueuedSong } from "./queue";
+import Queue from "./queue";
 import QueueCommand from "./commands/queue";
-import {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonInteraction,
-    ButtonStyle,
-    Client,
-    ComponentType,
-    EmbedBuilder,
-    Events,
-    REST,
-    Routes,
-    TextChannel
-} from "discord.js";
-import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
+import { Client, Events, REST, Routes } from "discord.js";
 import type { Command } from "./commands/base";
 import { loadConfig } from "./config";
 import ListCommand from "./commands/list";
@@ -23,15 +10,13 @@ import { MPV } from "./mpv";
 import MoveCommand from "./commands/move";
 import SwapCommand from "./commands/swap";
 import RemoveCommand from "./commands/remove";
-import colors from "./colors";
 import StatsCommand from "./commands/stats";
 import { unlink } from "fs/promises";
 import { join as joinPath, basename } from "path";
 import { select, confirm } from "@inquirer/prompts";
 import PurgeCommand from "./commands/purge";
+import { loopTryPlayNext } from "./playLoop";
 
-GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
-GlobalFonts.registerFromPath('./fonts/NotoColorEmoji-Regular.ttf', 'Noto Color Emoji');
 const config = await loadConfig();
 
 // If the database already exists, ask the user if they want to start a new queue
@@ -87,229 +72,6 @@ if (hasDb || hasBackups) {
 const db = openDb(config.dbFile);
 migrate(db, { migrationsFolder: "./drizzle" });
 
-async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: string) {
-    const canvas = createCanvas(1920, 1080);
-    const ctx = canvas.getContext('2d');
-
-    // background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 1920, 1080);
-
-    const currentImage = await loadImage(current.thumbnail);
-    ctx.drawImage(currentImage, 100, 100, 1024, 576);
-
-    // title under image
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 40px "Noto Sans JP", "Noto Color Emoji"';
-    ctx.fillText(current.title, 100, 800, 1920 - 200);
-
-    // username under title
-    try {
-        let guild = client.guilds.cache.get(config.guildId);
-        if (!guild) {
-            guild = await client.guilds.fetch(config.guildId);
-        }
-        const member = await guild.members.fetch(current.userId);
-        const username = member.displayName;
-        ctx.font = '32px "Noto Sans JP", "Noto Color Emoji"';
-        ctx.fillText(username, 100, 850, 1920 - 200);
-    } catch (e) {
-        console.error('Failed to fetch username:', e);
-    }
-
-    ctx.font = '24px "Noto Sans JP", "Noto Color Emoji"';
-    ctx.fillText(
-        `Playback will begin in ${config.playbackTimeout} seconds. ` +
-        'Press the play button on your Discord client to start playback immediately.'
-    , 100, 950, 1920 - 200);
-
-
-    if (next.length > 0) {
-        ctx.font = 'bold 32px "Noto Sans JP", "Noto Color Emoji"';
-        ctx.fillText('Next up:', 1200, 100);
-        const ellipsis = '…';
-        for (let i = 0; i < next.length; i++) {
-            const song = next[i];
-            const text = `${i + 1}. ${song.title}`;
-            const width = ctx.measureText(text).width;
-            if (width > 600) {
-                let newText = text;
-                while (ctx.measureText(newText + ellipsis).width > 600) {
-                    newText = newText.slice(0, -1);
-                }
-                ctx.fillText(newText + ellipsis, 1200, 200 + i * 50);
-            } else {
-                ctx.fillText(text, 1200, 200 + i * 50);
-            }
-        }
-    } else {
-        ctx.font = 'bold 32px "Noto Sans JP", "Noto Color Emoji"';
-        ctx.fillText('Use /enqueue to add more songs to the queue.', 1200, 200);
-        ctx.fillText('The queue is currently empty.', 1200, 250);
-    }
-        
-    const data = await canvas.encode('jpeg');
-    await Bun.write(path, data.buffer);
-}
-
-async function writeLoadingImage(current: QueuedSong, path: string) {
-    const canvas = createCanvas(1920, 1080);
-    const ctx = canvas.getContext('2d');
-
-    const currentImage = await loadImage(current.thumbnail);
-    ctx.drawImage(currentImage, 0, 0, 1920, 1080);
-
-    ctx.font = 'bold 40px "Noto Sans JP", "Noto Color Emoji"';
-
-    const possibleEmojis = ['🤖', '🫠', '🎶', '🎵', '🔃'];
-    const possibleMessages = [
-        '動画を読み込み中',
-        'Loading...',
-    ];
-
-    const randomEmoji = possibleEmojis[Math.floor(Math.random() * possibleEmojis.length)];
-    const randomMessage = possibleMessages[Math.floor(Math.random() * possibleMessages.length)];
-    const text = `${randomEmoji} ${randomMessage} ${randomEmoji}`;
-    const textWidth = ctx.measureText(text).width;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.roundRect(100, 800, textWidth + 70, 90, 10);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(text, 135, 860);
-
-    const data = await canvas.encode('jpeg');
-    await Bun.write(path, data.buffer);
-}
-
-async function loopTryPlayNext(mpv: MPV, poll=1000) {
-    const dequeued = queue.transaction(tx => ({
-        current: tx.dequeue(),
-        next: tx.findQueued(10),
-    }));
-    
-    if (!dequeued.current) {
-        setTimeout(loopTryPlayNext, poll, mpv, poll);
-        return;
-    }
-
-    console.log(`Playing ${dequeued.current.title}`);
-
-    await writePreviewImage(dequeued.current, dequeued.next, './temp/preview.jpg');
-    await writeLoadingImage(dequeued.current, './temp/loading.jpg');
-
-    await mpv.load('./temp/preview.jpg');
-    await mpv.fullscreen();
-    await mpv.pause();
-    await mpv.load('./temp/loading.jpg', 'append');
-    await mpv.load(dequeued.current.url, 'append');
-
-    const channel = client.channels.cache.get(config.channelId) as TextChannel | undefined;
-    if (!channel) {
-        throw new Error('Channel not found');
-    }
-
-    const embed = new EmbedBuilder()
-        .setTitle(
-            dequeued.current.title.length > 256 ?
-            dequeued.current.title.slice(0, 253) + '...' :
-            dequeued.current.title
-        )
-        .setDescription(
-            'Playback will begin when either you or an admin press the play button below, or the playback timeout is reached.'
-        )
-        .setColor(colors.secondary)
-        .toJSON();
-
-    const msg = await channel.send({
-        content: `<@${dequeued.current.userId}>`,
-        embeds: [embed],
-        components: [new ActionRowBuilder<ButtonBuilder>().addComponents([
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setLabel('Play')
-                .setStyle(ButtonStyle.Primary),
-        ])],
-    });
-
-    // Change font size for the OSD message
-    const previousFontSize = await mpv.getProperty('osd-font-size');
-    await mpv.setProperty('osd-font-size', 24);
-
-    const now = new Date();
-    const countdownInterval = setInterval(() => {
-        const elapsed = (new Date().getTime() - now.getTime()) / 1000;
-        const remaining = config.playbackTimeout - elapsed;
-        if (remaining <= 0) {
-            clearInterval(countdownInterval);
-            return;
-        }
-        mpv.osdMessage(`Starting in ${Math.round(remaining)} seconds`);
-    }, 250);
-    
-    const interactionPromise = msg.awaitMessageComponent({
-        componentType: ComponentType.Button,
-        filter: (i) => i.customId === 'play' && (
-            i.user.id === dequeued.current!.userId ||
-            config.adminUsers.includes(i.user.id) ||
-            i.member!.roles.cache.some(role => config.adminRoles.includes(role.id))
-        ),
-        time: config.playbackTimeout * 1000,
-    });
-
-    const playPromise = new Promise<ButtonInteraction | null>(resolve => {
-        // Check if someone pressed the play button
-        const interval = setInterval(async () => {
-            if (!(await mpv.getProperty('pause'))) {
-                clearInterval(interval);
-                resolve(null);
-            }
-        }, 200);
-
-        interactionPromise.then((i) => {
-            // Someone pressed the play button
-            clearInterval(interval);
-            resolve(i);
-        }).catch(() => {
-            // Timeout reached
-            clearInterval(interval);
-            resolve(null);
-        });
-    });
-
-    const interaction = await playPromise;
-    clearInterval(countdownInterval);
-    // Reset font size
-    await mpv.setProperty('osd-font-size', previousFontSize);
-    queue.setStartedAt(dequeued.current.id);
-
-    const newComponents = [
-        new ActionRowBuilder<ButtonBuilder>().addComponents([
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setLabel('Playback started')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true),
-        ]),
-    ];
-
-    if (interaction) {
-        await interaction.update({ components: newComponents });
-    } else {
-        await msg.edit({ components: newComponents });
-    }
-
-    await mpv.play();
-    
-    while (true) {
-        if (await mpv.getProperty('idle-active'))
-            break;
-        await Bun.sleep(200);
-    }
-
-    setTimeout(loopTryPlayNext, poll, mpv, poll);
-}
-
 const queue = new Queue(db);
 const commands: Command[] = [
     new QueueCommand(queue, {
@@ -358,7 +120,8 @@ client.once(Events.ClientReady, async () => {
     await mpv.start();
     console.log('MPV started, do not close the MPV window!');
     console.log('To stop the bot, close this terminal window.');
-    loopTryPlayNext(mpv);
+    
+    loopTryPlayNext(mpv, queue, client, config, 1000);
 
     mpv.on('exit', () => {
         console.error('MPV process exited');
