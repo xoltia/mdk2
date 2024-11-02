@@ -193,6 +193,8 @@ async function loopTryPlayNext(mpv: MPV, poll=1000) {
         return;
     }
 
+    console.log(`Playing ${dequeued.current.title}`);
+
     await writePreviewImage(dequeued.current, dequeued.next, './temp/preview.jpg');
     await writeLoadingImage(dequeued.current, './temp/loading.jpg');
 
@@ -354,6 +356,8 @@ client.once(Events.ClientReady, async () => {
     
     const mpv = new MPV(config.mpvPath, config.screenNumber);
     await mpv.start();
+    console.log('MPV started, do not close the MPV window!');
+    console.log('To stop the bot, close this terminal window.');
     loopTryPlayNext(mpv);
 });
 
