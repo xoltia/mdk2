@@ -48,14 +48,21 @@ if (hasDb || hasBackups) {
         await Bun.write(backupPath, dbFile);
         await unlink(config.dbFile);
     } else if (result === 'restoreBackup') {
-        const backupChoices = backupFiles.map(backup => {
-            const filename = basename(backup);
-            const date = new Date(parseInt(filename.split('.')[0]));
-            return {
-                name: date.toLocaleString(),
-                value: backup,
-            };
-        });
+        const backupChoices = backupFiles
+            .map(backup => {
+                const filename = basename(backup);
+                const date = new Date(parseInt(filename.split('.')[0]));
+                return {
+                    name: date.toLocaleString(),
+                    value: backup,
+                };
+            })
+            .toReversed()
+            .map((c, i) => ({
+                name: `${i + 1}. ${c.name}`,
+                value: c.value,
+            }));
+
         const backupFile = await select({
             message: 'Select a backup to restore',
             choices: backupChoices,
