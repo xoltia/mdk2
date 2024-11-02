@@ -146,5 +146,9 @@ export class MPV extends EventEmitter {
     osdMessage(text: string) {
         return this.sendCommand('show_text', text);
     }
+
+    scriptMessage(name: string, ...args: any[]) {
+        return this.sendCommand('script_message', name, ...args);
+    }
 }
     
