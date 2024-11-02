@@ -31,6 +31,7 @@ import { select, confirm } from "@inquirer/prompts";
 import PurgeCommand from "./commands/purge";
 
 GlobalFonts.registerFromPath('./fonts/NotoSansJP-VariableFont_wght.ttf', 'Noto Sans JP');
+GlobalFonts.registerFromPath('./fonts/NotoColorEmoji-Regular.ttf', 'Noto Color Emoji');
 const config = await loadConfig();
 
 // If the database already exists, ask the user if they want to start a new queue
@@ -99,7 +100,7 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
 
     // title under image
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 40px "Noto Sans JP"';
+    ctx.font = 'bold 40px "Noto Sans JP", "Noto Color Emoji"';
     ctx.fillText(current.title, 100, 800, 1920 - 200);
 
     // username under title
@@ -110,13 +111,13 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
         }
         const member = await guild.members.fetch(current.userId);
         const username = member.displayName;
-        ctx.font = '32px "Noto Sans JP"';
+        ctx.font = '32px "Noto Sans JP", "Noto Color Emoji"';
         ctx.fillText(username, 100, 850, 1920 - 200);
     } catch (e) {
         console.error('Failed to fetch username:', e);
     }
 
-    ctx.font = '24px "Noto Sans JP"';
+    ctx.font = '24px "Noto Sans JP", "Noto Color Emoji"';
     ctx.fillText(
         `Playback will begin in ${config.playbackTimeout} seconds. ` +
         'Press the play button on your Discord client to start playback immediately.'
@@ -124,7 +125,7 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
 
 
     if (next.length > 0) {
-        ctx.font = 'bold 32px "Noto Sans JP"';
+        ctx.font = 'bold 32px "Noto Sans JP", "Noto Color Emoji"';
         ctx.fillText('Next up:', 1200, 100);
         const ellipsis = '…';
         for (let i = 0; i < next.length; i++) {
@@ -142,7 +143,7 @@ async function writePreviewImage(current: QueuedSong, next: QueuedSong[], path: 
             }
         }
     } else {
-        ctx.font = 'bold 32px "Noto Sans JP"';
+        ctx.font = 'bold 32px "Noto Sans JP", "Noto Color Emoji"';
         ctx.fillText('Use /enqueue to add more songs to the queue.', 1200, 200);
         ctx.fillText('The queue is currently empty.', 1200, 250);
     }
