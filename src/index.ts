@@ -123,9 +123,15 @@ client.once(Events.ClientReady, async () => {
     }
 
     
-    const mpv = new MPV(config.mpvPath, config.screenNumber);
+    const mpv = new MPV(config.mpvPath, [
+        '--idle',
+        '--force-window',
+        '--fs',
+        '--script-opts=osc-idlescreen=no',
+        `--fs-screen=${config.screenNumber}`,
+    ]);
+
     await mpv.start();
-    await mpv.scriptMessage('osc-idlescreen', 'no');
     console.log('MPV started, do not close the MPV window!');
     console.log('To stop the bot, close this terminal window.');
     

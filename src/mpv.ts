@@ -15,9 +15,9 @@ export class MPV extends EventEmitter {
     private process: ChildProcess | null;
     private socket: Socket | null;
     private id: number;
-    private screenNumber: number;
+    private args: string[];
 
-    constructor(mpvPath: string, screenNumber: number) {
+    constructor(mpvPath: string = 'mpv', args?: string[]) {
         super();
         this.socketPath = process.platform === 'win32' ?
             '\\\\.\\pipe\\mpvsocket' :
@@ -26,7 +26,7 @@ export class MPV extends EventEmitter {
         this.process = null;
         this.socket = null;
         this.id = 0;
-        this.screenNumber = screenNumber;
+        this.args = args ?? [];
     }
 
     private async createSocket(): Promise<Socket> {
@@ -53,10 +53,7 @@ export class MPV extends EventEmitter {
 
     private async createProcess(): Promise<ChildProcess> {
         return spawn(this.mpvPath, [
-            '--idle',
-            '--force-window',
-            '--fs',
-            '--fs-screen=' + this.screenNumber,
+            ...this.args,
             '--input-ipc-server=' + this.socketPath,
         ]);
     }
