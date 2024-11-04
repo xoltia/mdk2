@@ -54,7 +54,6 @@ async function playNext(
     await writeLoadingImage(dequeued.current, './temp/loading.jpg');
 
     await mpv.load('./temp/preview.jpg');
-    await mpv.fullscreen();
     await mpv.pause();
     await mpv.load('./temp/loading.jpg', 'append');
     await mpv.load(dequeued.current.url, 'append');
