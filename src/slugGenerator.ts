@@ -36,19 +36,29 @@ export default class SlugGenerator {
         return this.cdf.length - 1;
     }
 
-    private countActiveWithSlugPrefix(tx: QueueTx, slugPrefix: string): number {
-        return tx.countByCondition(sql`
+    private getSlugRepeatNumber(tx: QueueTx, slugPrefix: string): number {
+        const lastSlug = tx.findOneByCondition(sql`
             ${queue.dequeuedAt} IS NULL AND (
                 ${queue.slug} = ${slugPrefix} OR
                 ${queue.slug} LIKE ${`${slugPrefix}-%`}
-            );
-        `);
+            )
+            ORDER BY length(${queue.slug}) DESC, ${queue.slug} DESC
+            LIMIT 1;
+        `)?.slug;
+
+        if (!lastSlug)
+            return 0;
+
+        if (lastSlug.includes('-'))
+            return parseInt(lastSlug.split('-')[1]) + 1;
+
+        return 1;
     }
     
     nextSlug(tx: QueueTx): string {
         const index = this.chooseSlugIndex();
         const slug = this.slugs[index];
-        const number = this.countActiveWithSlugPrefix(tx, slug);
+        const number = this.getSlugRepeatNumber(tx, slug);
         if (number === 0)
             return slug;
         return `${slug}-${number}`;
