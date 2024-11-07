@@ -4,6 +4,7 @@ import type { QueueTx } from './queue';
 import slugs from './slugs.json' with { type: "json" };
 
 export default class SlugGenerator {
+    private readonly retryLimit = 5;
     private readonly slugs: string[];
     private readonly cdf: Float64Array;
     
@@ -56,12 +57,21 @@ export default class SlugGenerator {
     }
     
     nextSlug(tx: QueueTx): string {
-        const index = this.chooseSlugIndex();
-        const slug = this.slugs[index];
-        const number = this.getSlugRepeatNumber(tx, slug);
-        if (number === 0)
+        let slug = this.slugs[this.chooseSlugIndex()];
+        let sequenceNumber = this.getSlugRepeatNumber(tx, slug);
+        let retry = 0;
+        while (sequenceNumber > 0 && retry < this.retryLimit) {
+            const nextSlug = this.slugs[this.chooseSlugIndex()];
+            const nextSequenceNumber = this.getSlugRepeatNumber(tx, nextSlug);
+            if (nextSequenceNumber < sequenceNumber) {
+                slug = nextSlug;
+                sequenceNumber = nextSequenceNumber;
+            }
+            retry++;
+        }
+        if (sequenceNumber === 0)
             return slug;
-        return `${slug}-${number}`;
+        return `${slug}-${sequenceNumber}`;
     }
 
     nextSlugAllowCollision(): string {
