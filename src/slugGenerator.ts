@@ -55,14 +55,18 @@ export default class SlugGenerator {
 
         return 1;
     }
+
+    private slugAndSequenceId(tx: QueueTx): [string, number] {
+        const slug = this.slugs[this.chooseSlugIndex()];
+        const sequenceId = this.getSlugRepeatNumber(tx, slug);
+        return [slug, sequenceId];
+    }
     
     nextSlug(tx: QueueTx): string {
-        let slug = this.slugs[this.chooseSlugIndex()];
-        let sequenceNumber = this.getSlugRepeatNumber(tx, slug);
+        let [slug, sequenceNumber] = this.slugAndSequenceId(tx);
         let retry = 0;
         while (sequenceNumber > 0 && retry < this.retryLimit) {
-            const nextSlug = this.slugs[this.chooseSlugIndex()];
-            const nextSequenceNumber = this.getSlugRepeatNumber(tx, nextSlug);
+            const [nextSlug, nextSequenceNumber] = this.slugAndSequenceId(tx);
             if (nextSequenceNumber < sequenceNumber) {
                 slug = nextSlug;
                 sequenceNumber = nextSequenceNumber;
